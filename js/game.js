@@ -71,7 +71,7 @@ class ParabolicBirdsGame {
         tower.leftLeg = leftLeg;
         tower.rightLeg = rightLeg;
         tower.topBeam = topBeam;
-        tower.collapseDirection = 0;
+        tower.fallAnim = null;
         return tower;
     }
     
@@ -182,94 +182,170 @@ class ParabolicBirdsGame {
 
     update() {
         if (this.gameState !== 'playing') return;
-        
+
         if (this.bird.active) {
             const wasActive = this.bird.active;
             this.bird.update();
             if (wasActive && !this.bird.active) {
                 this.updateUI();
             }
-            
-            // Check collisions
+
             const collision = CollisionDetector.checkBirdTowerCollision(this.bird, this.towers);
             if (collision.collided) {
                 const block = collision.block;
                 const tower = collision.tower;
-                
-                // Avoid double-counting collisions
+
                 const collisionKey = `${block}-${tower}`;
                 if (!this.collisionsThisFrame.has(collisionKey)) {
-                    // Apply damage
                     const damageAmount = block.instantBreak ? block.health : 1;
                     if (block.damage(damageAmount)) {
-                        particleSystem.createExplosion(block.x + block.width/2, block.y + block.height/2, '#ff6b6b');
+                        particleSystem.createExplosion(block.x + block.width / 2, block.y + block.height / 2, '#ff6b6b');
                         this.score += 10;
                         soundManager.play('collision');
                     }
-                    
-                    // Reflect bird
+
                     const response = CollisionDetector.getCollisionResponse(this.bird, block);
-                    // After first impact, switch from equation-follow mode to normal physics.
-                    // This lets bounce/collision responses actually take effect.
                     this.bird.useEquationFlight = false;
                     this.bird.vx = response.vx;
                     this.bird.vy = response.vy;
-                    // Auto-reset after hitting any tower block, with no life limits.
                     this.bird.reset();
                     this.updateUI();
-                    
+
                     this.collisionsThisFrame.add(collisionKey);
                 }
             }
-            
-            // Remove destroyed blocks
-            this.towers.forEach(tower => tower.removeDeadBlocks());
-            this.updateTowerCollapse();
-            
-            // Check level completion
-            if (this.towers.every(tower => tower.isDestroyed())) {
-                this.completeLevel();
-            }
         }
-        
+
+        this.towers.forEach(tower => tower.removeDeadBlocks());
+        this.updateTowerFallAnimation();
+
+        if (this.towers.every(tower => tower.isDestroyed())) {
+            this.completeLevel();
+        }
+
         particleSystem.update();
         this.collisionsThisFrame.clear();
     }
 
-    updateTowerCollapse() {
+    startTowerFall(tower, direction) {
+        const top = tower.topBeam;
+        if (!top || !tower.blocks.includes(top) || tower.fallAnim) return;
+
+        tower.blocks = tower.blocks.filter(b => b !== top);
+
+        const dir = direction;
+        const jitter = (Math.random() - 0.5) * 1.2;
+        let beamVx;
+        let beamVy;
+        let angle;
+        let angVel;
+        let pigVx;
+        let pigVy;
+
+        if (dir === 0) {
+            beamVx = (Math.random() - 0.5) * 1.6;
+            beamVy = 1.9;
+            angle = (Math.random() - 0.5) * 0.15;
+            angVel = (Math.random() - 0.5) * 0.05;
+            pigVx = (Math.random() - 0.5) * 5.5;
+            pigVy = -2.2 + Math.random() * 0.5;
+        } else {
+            beamVx = dir * 2.4 + jitter * 0.25;
+            beamVy = 0.6;
+            angle = dir * 0.12;
+            angVel = dir * 0.038 + (Math.random() - 0.5) * 0.01;
+            pigVx = dir * 1.1 + (Math.random() - 0.5) * 4;
+            pigVy = -2.8 + Math.random() * 0.6;
+        }
+
+        tower.fallAnim = {
+            beamX: top.x,
+            beamY: top.y,
+            w: top.width,
+            h: top.height,
+            beamVx,
+            beamVy,
+            angle,
+            angVel,
+            pigX: top.x + top.width / 2 + (Math.random() - 0.5) * 8,
+            pigY: top.y - 16,
+            pigVx,
+            pigVy,
+            pigAngle: (Math.random() - 0.5) * 0.5,
+            pigAngVel: (Math.random() - 0.5) * 0.14,
+            frame: 0
+        };
+    }
+
+    updateTowerFallAnimation() {
+        const groundY = this.graphOriginY;
+
         this.towers.forEach(tower => {
             if (!tower.isSupportTower || !tower.topBeam) return;
 
             const leftStanding = tower.blocks.includes(tower.leftLeg);
             const rightStanding = tower.blocks.includes(tower.rightLeg);
-            const topStanding = tower.blocks.includes(tower.topBeam);
-            if (!topStanding) return;
+            const topInBlocks = tower.blocks.includes(tower.topBeam);
 
-            if (tower.collapseDirection === 0) {
+            if (!tower.fallAnim && topInBlocks) {
                 if (!leftStanding && rightStanding) {
-                    tower.collapseDirection = -1;
+                    this.startTowerFall(tower, -1);
                 } else if (!rightStanding && leftStanding) {
-                    tower.collapseDirection = 1;
+                    this.startTowerFall(tower, 1);
+                } else if (!leftStanding && !rightStanding) {
+                    this.startTowerFall(tower, 0);
                 }
             }
 
-            if (tower.collapseDirection !== 0) {
-                tower.topBeam.x += 4.5 * tower.collapseDirection;
-                tower.topBeam.y += 5;
+            if (!tower.fallAnim) return;
 
-                if (tower.topBeam.y + tower.topBeam.height >= this.graphOriginY) {
-                    tower.topBeam.health = 0;
-                    if (leftStanding) tower.leftLeg.health = 0;
-                    if (rightStanding) tower.rightLeg.health = 0;
-                    tower.removeDeadBlocks();
-                    particleSystem.createExplosion(
-                        tower.topBeam.x + tower.topBeam.width / 2,
-                        this.graphOriginY - 8,
-                        '#ffaa55'
-                    );
-                }
+            const fa = tower.fallAnim;
+            fa.frame++;
+
+            fa.beamVy += 0.44;
+            fa.beamVx *= 0.997;
+            fa.beamX += fa.beamVx;
+            fa.beamY += fa.beamVy;
+            fa.angle += fa.angVel;
+            fa.angVel += Math.sin(fa.frame * 0.08) * 0.0006;
+            fa.angVel *= 0.998;
+
+            fa.pigVy += 0.5;
+            fa.pigVx += Math.sin(fa.frame * 0.12) * 0.035;
+            fa.pigVx *= 0.995;
+            fa.pigX += fa.pigVx;
+            fa.pigY += fa.pigVy;
+            fa.pigAngle += fa.pigAngVel;
+            fa.pigAngVel *= 0.992;
+            fa.pigAngVel += (Math.random() - 0.5) * 0.002;
+
+            const beamBottom = fa.beamY + fa.h;
+            if (beamBottom >= groundY - 4 || fa.beamY > 720) {
+                this.finishTowerFall(tower);
             }
         });
+    }
+
+    finishTowerFall(tower) {
+        if (!tower.fallAnim) return;
+        const fa = tower.fallAnim;
+        tower.fallAnim = null;
+        if (tower.topBeam) {
+            tower.topBeam.health = 0;
+        }
+        if (tower.leftLeg && tower.blocks.includes(tower.leftLeg)) {
+            tower.leftLeg.health = 0;
+        }
+        if (tower.rightLeg && tower.blocks.includes(tower.rightLeg)) {
+            tower.rightLeg.health = 0;
+        }
+        tower.removeDeadBlocks();
+        particleSystem.createExplosion(
+            fa.beamX + fa.w / 2,
+            Math.min(fa.beamY + fa.h / 2, this.graphOriginY - 6),
+            '#ffaa55'
+        );
+        particleSystem.createExplosion(fa.pigX, fa.pigY + 8, '#7ed957');
     }
     
     draw() {
@@ -290,8 +366,8 @@ class ParabolicBirdsGame {
         this.ctx.font = 'bold 11px Arial';
         this.ctx.fillText('LAUNCH', this.graphOriginX - 24, this.graphOriginY + 10);
         
-        // Draw towers
         this.towers.forEach(tower => tower.draw(this.ctx));
+        this.towers.forEach(tower => this.drawTowerFallLayer(tower));
         this.drawGoofyPigOnTower();
         
         // Draw bird
@@ -351,6 +427,24 @@ class ParabolicBirdsGame {
         this.ctx.fillText('(0,0)', this.graphOriginX + 8, this.graphOriginY - 8);
     }
 
+    drawTowerFallLayer(tower) {
+        if (!tower.fallAnim) return;
+        const fa = tower.fallAnim;
+        const ctx = this.ctx;
+
+        ctx.save();
+        ctx.translate(fa.beamX + fa.w / 2, fa.beamY + fa.h / 2);
+        ctx.rotate(fa.angle);
+        ctx.fillStyle = '#787e87';
+        ctx.fillRect(-fa.w / 2, -fa.h / 2, fa.w, fa.h);
+        ctx.strokeStyle = '#4a5058';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-fa.w / 2, -fa.h / 2, fa.w, fa.h);
+        ctx.restore();
+
+        this.drawGoofyPigAt(fa.pigX, fa.pigY, fa.pigAngle);
+    }
+
     drawGoofyPigOnTower() {
         const tower = this.towers[0];
         if (!tower || !tower.isSupportTower || !tower.topBeam || !tower.blocks.includes(tower.topBeam)) {
@@ -359,49 +453,54 @@ class ParabolicBirdsGame {
 
         const pigX = tower.topBeam.x + tower.topBeam.width / 2;
         const pigY = tower.topBeam.y - 18;
+        this.drawGoofyPigAt(pigX, pigY, 0);
+    }
 
-        // Body
-        this.ctx.fillStyle = '#7ed957';
-        this.ctx.beginPath();
-        this.ctx.arc(pigX, pigY, 14, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.strokeStyle = '#4a8f36';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
+    drawGoofyPigAt(pigX, pigY, angle) {
+        const ctx = this.ctx;
+        ctx.save();
+        ctx.translate(pigX, pigY);
+        ctx.rotate(angle);
 
-        // Ears
-        this.ctx.fillStyle = '#7ed957';
-        this.ctx.beginPath();
-        this.ctx.arc(pigX - 7, pigY - 12, 4, 0, Math.PI * 2);
-        this.ctx.arc(pigX + 7, pigY - 12, 4, 0, Math.PI * 2);
-        this.ctx.fill();
+        ctx.fillStyle = '#7ed957';
+        ctx.beginPath();
+        ctx.arc(0, 0, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#4a8f36';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
-        // Eyes (goofy offset)
-        this.ctx.fillStyle = '#fff';
-        this.ctx.beginPath();
-        this.ctx.arc(pigX - 4, pigY - 3, 3, 0, Math.PI * 2);
-        this.ctx.arc(pigX + 5, pigY - 5, 3, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.fillStyle = '#111';
-        this.ctx.beginPath();
-        this.ctx.arc(pigX - 4, pigY - 3, 1.2, 0, Math.PI * 2);
-        this.ctx.arc(pigX + 5, pigY - 5, 1.2, 0, Math.PI * 2);
-        this.ctx.fill();
+        ctx.fillStyle = '#7ed957';
+        ctx.beginPath();
+        ctx.arc(-7, -12, 4, 0, Math.PI * 2);
+        ctx.arc(7, -12, 4, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Snout
-        this.ctx.fillStyle = '#6ecf4c';
-        this.ctx.beginPath();
-        this.ctx.ellipse(pigX + 1, pigY + 5, 6, 4, 0.2, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.fillStyle = '#1a1a1a';
-        this.ctx.fillRect(pigX - 1, pigY + 4, 1.5, 1.5);
-        this.ctx.fillRect(pigX + 2, pigY + 5, 1.5, 1.5);
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(-4, -3, 3, 0, Math.PI * 2);
+        ctx.arc(5, -5, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#111';
+        ctx.beginPath();
+        ctx.arc(-4, -3, 1.2, 0, Math.PI * 2);
+        ctx.arc(5, -5, 1.2, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Tongue
-        this.ctx.fillStyle = '#ff7fa0';
-        this.ctx.beginPath();
-        this.ctx.ellipse(pigX + 3, pigY + 11, 2.5, 1.5, 0, 0, Math.PI * 2);
-        this.ctx.fill();
+        ctx.fillStyle = '#6ecf4c';
+        ctx.beginPath();
+        ctx.ellipse(1, 5, 6, 4, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(-1, 4, 1.5, 1.5);
+        ctx.fillRect(2, 5, 1.5, 1.5);
+
+        ctx.fillStyle = '#ff7fa0';
+        ctx.beginPath();
+        ctx.ellipse(3, 11, 2.5, 1.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
     }
 
     completeLevel() {
