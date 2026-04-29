@@ -22,7 +22,7 @@ A fun, interactive game that teaches parabolic equations through gameplay! Playe
 - Smooth animations and transitions
 
 ### 🔊 Audio
-- **`sounds/bird-chirp.mp3`** plays while the bird is flying (see `sounds/README.md`). Volume/mute are handled in `js/sound-manager.js`.
+- **`sounds/bird-chirp.mp3`** plays once per SHOOT from start to finish (see `sounds/README.md`). Volume/mute are handled in `js/sound-manager.js`.
 
 ### 📊 Level System
 1. **Simple Start** — one support tower (layout scales with canvas size).

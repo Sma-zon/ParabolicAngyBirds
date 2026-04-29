@@ -161,7 +161,7 @@ class ParabolicBirdsGame {
         // Use player equation exactly as entered (no auto-correction).
         this.bird.launchWithEquation(a, h, k, 3);
         this.shotsFired++;
-        soundManager.ensureContext();
+        soundManager.playShotSound();
         this.updateUI();
         
         // Display the equation being tested
@@ -272,10 +272,6 @@ class ParabolicBirdsGame {
 
         particleSystem.update();
         this.collisionsThisFrame.clear();
-
-        if (this.gameState === 'playing') {
-            soundManager.tickBirdFlying(this.bird.active);
-        }
     }
 
     startTowerFall(tower, direction) {

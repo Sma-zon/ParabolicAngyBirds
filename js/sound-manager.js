@@ -1,20 +1,18 @@
 /**
- * Sound Manager — bird flying MP3 only (sounds/bird-chirp.mp3).
+ * Sound Manager — bird MP3 plays once per shot (sounds/bird-chirp.mp3).
  */
 
 class SoundManager {
     constructor() {
         this.muted = false;
         this.volume = 0.92;
-        this._birdNextChirpAt = 0;
-        this._birdFlying = false;
         this._audioUnlocked = false;
         this._installUnlockListeners();
         this._syncBirdAudio();
     }
 
     _installUnlockListeners() {
-        const unlock = () => this.ensureContext(true);
+        const unlock = () => this.ensureContext();
         ['pointerdown', 'keydown', 'touchstart'].forEach((ev) => {
             document.addEventListener(ev, unlock, { passive: true });
         });
@@ -28,7 +26,9 @@ class SoundManager {
         }
     }
 
-    /** Warm / unlock HTML audio once after a user gesture. */
+    /**
+     * Warm HTML audio after a user gesture (quiet unlock for browsers that need it).
+     */
     ensureContext() {
         if (this._audioUnlocked || this.muted) return null;
         const el = document.getElementById('sfxBirdChirp');
@@ -46,27 +46,9 @@ class SoundManager {
         return null;
     }
 
-    tickBirdFlying(isBirdActive) {
-        if (this.muted) {
-            this._birdFlying = false;
-            return;
-        }
-        if (!isBirdActive) {
-            this._birdFlying = false;
-            return;
-        }
-        const now = performance.now() / 1000;
-        if (!this._birdFlying) {
-            this._birdFlying = true;
-            this._birdNextChirpAt = now + 0.05 + Math.random() * 0.12;
-        }
-        if (now >= this._birdNextChirpAt) {
-            this._playBirdFlyingSound();
-            this._birdNextChirpAt = now + 0.12 + Math.random() * 0.28;
-        }
-    }
-
-    _playBirdFlyingSound() {
+    /** One full playback from the start (call from SHOOT after a valid launch). */
+    playShotSound() {
+        if (this.muted) return;
         const el = document.getElementById('sfxBirdChirp');
         if (!el) return;
         try {
@@ -74,8 +56,12 @@ class SoundManager {
             el.muted = false;
             el.currentTime = 0;
             const p = el.play();
-            if (p && typeof p.catch === 'function') {
-                p.catch(() => {});
+            if (p && typeof p.then === 'function') {
+                p.then(() => {
+                    this._audioUnlocked = true;
+                }).catch(() => {});
+            } else {
+                this._audioUnlocked = true;
             }
         } catch (_) {}
     }
@@ -88,6 +74,10 @@ class SoundManager {
     toggleMute() {
         this.muted = !this.muted;
         this._syncBirdAudio();
+        const el = document.getElementById('sfxBirdChirp');
+        if (el && this.muted) {
+            el.pause();
+        }
         return this.muted;
     }
 }
