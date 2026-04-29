@@ -39,11 +39,31 @@ class ParabolicBirdsGame {
         
         this.currentLevel = levelId;
         this.bird.reset();
-        this.towers = createLevelTowers(level);
+        this.towers = [this.createSturdyTower()];
         this.gameState = 'playing';
         particleSystem.clear();
         this.updateUI();
         this.showMessage(`Level ${levelId}: ${level.name}`, 'info');
+    }
+
+    createSturdyTower() {
+        const blocks = [];
+        const startX = 640;
+        const blockW = 34;
+        const blockH = 32;
+        const rows = 6;
+        const cols = 3;
+        const topY = 280;
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const x = startX + col * (blockW + 4);
+                const y = topY + row * (blockH + 4);
+                blocks.push(new Block(x, y, blockW, blockH, 'stone'));
+            }
+        }
+
+        return new Tower(startX, topY, blocks);
     }
     
     shoot() {
@@ -207,7 +227,6 @@ class ParabolicBirdsGame {
         
         // Draw grid
         this.drawGrid();
-        this.drawStiltTowerWithPig();
         
         // Draw bird launch area
         this.ctx.strokeStyle = 'rgba(70, 70, 70, 0.8)';
@@ -279,66 +298,6 @@ class ParabolicBirdsGame {
         this.ctx.fillText('(0,0)', this.graphOriginX + 8, this.graphOriginY - 8);
     }
 
-    drawStiltTowerWithPig() {
-        const towerBaseX = 650;
-        const towerTopY = 300;
-        const towerWidth = 120;
-        const towerHeight = 110;
-        const groundY = this.graphOriginY;
-
-        // Wooden stilts
-        this.ctx.fillStyle = '#6f3e1d';
-        this.ctx.fillRect(towerBaseX + 15, towerTopY + towerHeight, 12, groundY - (towerTopY + towerHeight));
-        this.ctx.fillRect(towerBaseX + towerWidth - 27, towerTopY + towerHeight, 12, groundY - (towerTopY + towerHeight));
-
-        // Brown wooden tower
-        this.ctx.fillStyle = '#8b4513';
-        this.ctx.fillRect(towerBaseX, towerTopY, towerWidth, towerHeight);
-        this.ctx.strokeStyle = '#5a2f0f';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(towerBaseX, towerTopY, towerWidth, towerHeight);
-
-        // Wood plank lines
-        this.ctx.strokeStyle = 'rgba(70, 40, 15, 0.4)';
-        this.ctx.lineWidth = 1;
-        for (let y = towerTopY + 18; y < towerTopY + towerHeight; y += 18) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(towerBaseX, y);
-            this.ctx.lineTo(towerBaseX + towerWidth, y);
-            this.ctx.stroke();
-        }
-
-        // Pig
-        const pigX = towerBaseX + towerWidth / 2;
-        const pigY = towerTopY - 24;
-        this.ctx.fillStyle = '#7ed957';
-        this.ctx.beginPath();
-        this.ctx.arc(pigX, pigY, 16, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.strokeStyle = '#4a8f36';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
-
-        // Pig ears
-        this.ctx.fillStyle = '#7ed957';
-        this.ctx.beginPath();
-        this.ctx.arc(pigX - 8, pigY - 14, 5, 0, Math.PI * 2);
-        this.ctx.arc(pigX + 8, pigY - 14, 5, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Pig face
-        this.ctx.fillStyle = '#1e1e1e';
-        this.ctx.fillRect(pigX - 6, pigY - 3, 3, 3);
-        this.ctx.fillRect(pigX + 3, pigY - 3, 3, 3);
-        this.ctx.fillStyle = '#5dbb46';
-        this.ctx.beginPath();
-        this.ctx.ellipse(pigX, pigY + 5, 6, 4, 0, 0, Math.PI * 2);
-        this.ctx.fill();
-        this.ctx.fillStyle = '#1e1e1e';
-        this.ctx.fillRect(pigX - 2, pigY + 4, 1.5, 1.5);
-        this.ctx.fillRect(pigX + 1, pigY + 4, 1.5, 1.5);
-    }
-    
     completeLevel() {
         this.gameState = 'levelComplete';
         const bonus = 100;
