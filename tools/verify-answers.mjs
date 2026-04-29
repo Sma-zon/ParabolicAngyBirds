@@ -85,15 +85,27 @@ const L3 = [
     { x: 365, y: 222, w: 95, h: 26 },
     { x: 540, y: 222, w: 95, h: 26 }
 ];
-const L4 = [
-    { x: 285, y: 195, w: 155, h: 22 },
-    { x: 575, y: 195, w: 175, h: 22 },
-    { x: 325, y: 268, w: 175, h: 22 },
-    { x: 615, y: 268, w: 155, h: 22 },
-    { x: 295, y: 341, w: 145, h: 22 },
-    { x: 555, y: 341, w: 185, h: 22 },
-    { x: 365, y: 414, w: 125, h: 24 },
-    { x: 585, y: 414, w: 125, h: 24 }
+const L4towers = [
+    [
+        { x: 318, y: 438, w: 36, h: 36 },
+        { x: 296, y: 466, w: 80, h: 26 },
+        { x: 299, y: 408, w: 74, h: 24 }
+    ],
+    [
+        { x: 438, y: 438, w: 36, h: 36 },
+        { x: 416, y: 466, w: 80, h: 26 },
+        { x: 419, y: 408, w: 74, h: 24 }
+    ],
+    [
+        { x: 558, y: 438, w: 36, h: 36 },
+        { x: 536, y: 466, w: 80, h: 26 },
+        { x: 539, y: 408, w: 74, h: 24 }
+    ],
+    [
+        { x: 678, y: 438, w: 36, h: 36 },
+        { x: 656, y: 466, w: 80, h: 26 },
+        { x: 659, y: 408, w: 74, h: 24 }
+    ]
 ];
 
 for (const row of rows) {
@@ -119,8 +131,9 @@ for (const row of rows) {
         blocks = L3;
         expect = 0;
     } else if (row.level === 4) {
-        blocks = L4;
-        expect = row.shot - 1;
+        const from = row.shot - 1;
+        blocks = L4towers.slice(from).flat();
+        expect = 0;
     }
     const r = simFirstHit(blocks, p.a, p.h, p.k);
     const ok = r.hit === expect && !r.oob;

@@ -54,22 +54,44 @@ const LEVELS = [
     },
     {
         id: 4,
-        name: 'Zigzag Gauntlet',
-        description: 'Four offset gates — thread the parabola through every gap',
-        suggestedEquation: { a: 0.0014, h: 520, k: 195 },
+        name: 'Castle Siege',
+        description: 'Four keeps in a row — each has two layers and a TNT core; clear them left to right',
+        suggestedEquation: { a: 0.0011, h: 420, k: 200 },
         blockTowers: [
             {
                 x: 0,
                 y: 0,
                 blocks: [
-                    { x: 285, y: 195, w: 155, h: 22, type: 'stone' },
-                    { x: 575, y: 195, w: 175, h: 22, type: 'stone' },
-                    { x: 325, y: 268, w: 175, h: 22, type: 'wood' },
-                    { x: 615, y: 268, w: 155, h: 22, type: 'wood' },
-                    { x: 295, y: 341, w: 145, h: 22, type: 'stone' },
-                    { x: 555, y: 341, w: 185, h: 22, type: 'stone' },
-                    { x: 365, y: 414, w: 125, h: 24, type: 'wood' },
-                    { x: 585, y: 414, w: 125, h: 24, type: 'wood' }
+                    { x: 318, y: 438, w: 36, h: 36, type: 'tnt' },
+                    { x: 296, y: 466, w: 80, h: 26, type: 'stone' },
+                    { x: 299, y: 408, w: 74, h: 24, type: 'stone' }
+                ]
+            },
+            {
+                x: 0,
+                y: 0,
+                blocks: [
+                    { x: 438, y: 438, w: 36, h: 36, type: 'tnt' },
+                    { x: 416, y: 466, w: 80, h: 26, type: 'stone' },
+                    { x: 419, y: 408, w: 74, h: 24, type: 'stone' }
+                ]
+            },
+            {
+                x: 0,
+                y: 0,
+                blocks: [
+                    { x: 558, y: 438, w: 36, h: 36, type: 'tnt' },
+                    { x: 536, y: 466, w: 80, h: 26, type: 'stone' },
+                    { x: 539, y: 408, w: 74, h: 24, type: 'stone' }
+                ]
+            },
+            {
+                x: 0,
+                y: 0,
+                blocks: [
+                    { x: 678, y: 438, w: 36, h: 36, type: 'tnt' },
+                    { x: 656, y: 466, w: 80, h: 26, type: 'stone' },
+                    { x: 659, y: 408, w: 74, h: 24, type: 'stone' }
                 ]
             }
         ],

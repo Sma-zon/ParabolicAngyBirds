@@ -71,10 +71,13 @@ function refine(blocks, targetIndex, seed) {
 }
 
 function formatEq({ a, h, k }) {
-    const hs = h;
-    const ks = k >= 0 ? `+${k}` : `${k}`;
     const af = Number(a.toFixed(7)).toString();
-    return `y = -${af}(x-${hs})^2 ${ks}`;
+    const xInner =
+        h >= 0
+            ? `x-${Number(Math.abs(h).toFixed(7))}`
+            : `x+${Number(Math.abs(h).toFixed(7))}`;
+    const ks = k >= 0 ? `+${k}` : `${k}`;
+    return `y = -${af}(${xInner})^2 ${ks}`;
 }
 
 const W = 1000;
@@ -123,16 +126,33 @@ const L3blocks = [
     { x: 540, y: 222, w: 95, h: 26 }
 ];
 
-const L4blocks = [
-    { x: 285, y: 195, w: 155, h: 22 },
-    { x: 575, y: 195, w: 175, h: 22 },
-    { x: 325, y: 268, w: 175, h: 22 },
-    { x: 615, y: 268, w: 155, h: 22 },
-    { x: 295, y: 341, w: 145, h: 22 },
-    { x: 555, y: 341, w: 185, h: 22 },
-    { x: 365, y: 414, w: 125, h: 24 },
-    { x: 585, y: 414, w: 125, h: 24 }
+/** Four two-layer keeps; collision order is tower1 → tower2 → tower3 → tower4 (matches levels.js). */
+const L4towers = [
+    [
+        { x: 318, y: 438, w: 36, h: 36 },
+        { x: 296, y: 466, w: 80, h: 26 },
+        { x: 299, y: 408, w: 74, h: 24 }
+    ],
+    [
+        { x: 438, y: 438, w: 36, h: 36 },
+        { x: 416, y: 466, w: 80, h: 26 },
+        { x: 419, y: 408, w: 74, h: 24 }
+    ],
+    [
+        { x: 558, y: 438, w: 36, h: 36 },
+        { x: 536, y: 466, w: 80, h: 26 },
+        { x: 539, y: 408, w: 74, h: 24 }
+    ],
+    [
+        { x: 678, y: 438, w: 36, h: 36 },
+        { x: 656, y: 466, w: 80, h: 26 },
+        { x: 659, y: 408, w: 74, h: 24 }
+    ]
 ];
+
+function flattenL4FromTowerIndex(startTowerIdx) {
+    return L4towers.slice(startTowerIdx).flat();
+}
 
 const answers = [];
 
@@ -167,17 +187,17 @@ const answers = [];
     answers.push({ level: 3, shot: 1, note: 'Fly through slot into TNT', ...sol });
 }
 
-for (let i = 0; i < L4blocks.length; i++) {
-    const target = L4blocks[i];
-    const others = L4blocks.filter((_, j) => j !== i);
-    const blocks = [target, ...others];
-    let sol = randomSolve(blocks, 0, 200000);
-    if (!sol) {
-        sol = randomSolve(L4blocks, i, 300000);
-    }
-    if (!sol) throw new Error(`L4 idx ${i} fail`);
-    sol = refine(L4blocks, i, sol);
-    answers.push({ level: 4, shot: i + 1, note: `Block row ${Math.floor(i / 2) + 1} ${i % 2 === 0 ? 'left' : 'right'}`, ...sol });
+for (let ti = 0; ti < L4towers.length; ti++) {
+    const blocks = flattenL4FromTowerIndex(ti);
+    let sol = randomSolve(blocks, 0, 500000);
+    if (!sol) throw new Error(`L4 tower ${ti + 1} fail`);
+    sol = refine(blocks, 0, sol);
+    answers.push({
+        level: 4,
+        shot: ti + 1,
+        note: `Tower ${ti + 1} of 4 — detonate its TNT (two layers per keep)`,
+        ...sol
+    });
 }
 
 console.log(JSON.stringify(answers.map((r) => ({
