@@ -47,23 +47,32 @@ class ParabolicBirdsGame {
     }
 
     createSturdyTower() {
-        const blocks = [];
-        const startX = 640;
-        const blockW = 34;
-        const blockH = 32;
-        const rows = 6;
-        const cols = 3;
-        const topY = 280;
+        const leftLeg = new Block(620, 390, 24, 90, 'wood');
+        const rightLeg = new Block(686, 390, 24, 90, 'wood');
+        const topBeam = new Block(610, 350, 110, 30, 'stone');
 
-        for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                const x = startX + col * (blockW + 4);
-                const y = topY + row * (blockH + 4);
-                blocks.push(new Block(x, y, blockW, blockH, 'stone'));
-            }
-        }
+        leftLeg.health = 1;
+        leftLeg.maxHealth = 1;
+        leftLeg.instantBreak = true;
+        leftLeg.part = 'leftLeg';
 
-        return new Tower(startX, topY, blocks);
+        rightLeg.health = 1;
+        rightLeg.maxHealth = 1;
+        rightLeg.instantBreak = true;
+        rightLeg.part = 'rightLeg';
+
+        topBeam.health = 1;
+        topBeam.maxHealth = 1;
+        topBeam.instantBreak = true;
+        topBeam.part = 'topBeam';
+
+        const tower = new Tower(610, 350, [leftLeg, rightLeg, topBeam]);
+        tower.isSupportTower = true;
+        tower.leftLeg = leftLeg;
+        tower.rightLeg = rightLeg;
+        tower.topBeam = topBeam;
+        tower.collapseDirection = 0;
+        return tower;
     }
     
     shoot() {
@@ -187,7 +196,8 @@ class ParabolicBirdsGame {
                 const collisionKey = `${block}-${tower}`;
                 if (!this.collisionsThisFrame.has(collisionKey)) {
                     // Apply damage
-                    if (block.damage(1)) {
+                    const damageAmount = block.instantBreak ? block.health : 1;
+                    if (block.damage(damageAmount)) {
                         particleSystem.createExplosion(block.x + block.width/2, block.y + block.height/2, '#ff6b6b');
                         this.score += 10;
                         soundManager.play('collision');
@@ -209,6 +219,7 @@ class ParabolicBirdsGame {
             
             // Remove destroyed blocks
             this.towers.forEach(tower => tower.removeDeadBlocks());
+            this.updateTowerCollapse();
             
             // Check level completion
             if (this.towers.every(tower => tower.isDestroyed())) {
@@ -218,6 +229,42 @@ class ParabolicBirdsGame {
         
         particleSystem.update();
         this.collisionsThisFrame.clear();
+    }
+
+    updateTowerCollapse() {
+        this.towers.forEach(tower => {
+            if (!tower.isSupportTower || !tower.topBeam) return;
+
+            const leftStanding = tower.blocks.includes(tower.leftLeg);
+            const rightStanding = tower.blocks.includes(tower.rightLeg);
+            const topStanding = tower.blocks.includes(tower.topBeam);
+            if (!topStanding) return;
+
+            if (tower.collapseDirection === 0) {
+                if (!leftStanding && rightStanding) {
+                    tower.collapseDirection = -1;
+                } else if (!rightStanding && leftStanding) {
+                    tower.collapseDirection = 1;
+                }
+            }
+
+            if (tower.collapseDirection !== 0) {
+                tower.topBeam.x += 4.5 * tower.collapseDirection;
+                tower.topBeam.y += 5;
+
+                if (tower.topBeam.y + tower.topBeam.height >= this.graphOriginY) {
+                    tower.topBeam.health = 0;
+                    if (leftStanding) tower.leftLeg.health = 0;
+                    if (rightStanding) tower.rightLeg.health = 0;
+                    tower.removeDeadBlocks();
+                    particleSystem.createExplosion(
+                        tower.topBeam.x + tower.topBeam.width / 2,
+                        this.graphOriginY - 8,
+                        '#ffaa55'
+                    );
+                }
+            }
+        });
     }
     
     draw() {
