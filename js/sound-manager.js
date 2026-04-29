@@ -1,19 +1,27 @@
 /**
- * Sound Manager — looping background theme + bird chirp on each shot.
- * Theme files: sounds/02-angry-birds-theme.mp3 or sounds/02. Angry Birds Theme.mp3
+ * Sound Manager — looping HTML5 theme when available, plus soft Web Audio pad
+ * as a fallback (always starts in the same user-gesture tick so Safari/iOS hear something).
+ * Theme files: try several paths under sounds/ (see BGM_URLS).
  */
+
+const BGM_URLS = [
+    'sounds/02-angry-birds-theme.mp3',
+    'sounds/02.%20Angry%20Birds%20Theme.mp3',
+    'sounds/bgm-theme.mp3'
+];
 
 class SoundManager {
     constructor() {
         this.muted = false;
-        /** Bird chirp — clearly louder than BGM. */
         this.volume = 0.92;
-        /** Background theme (audible but still under the chirp). */
-        this.musicVolume = 0.42;
+        this.musicVolume = 0.52;
         this._audioUnlocked = false;
-        this._bgmStarted = false;
-        /** True only after a fatal media error (missing file / bad format). */
-        this._bgmDead = false;
+        this._htmlBgmPlaying = false;
+        this._htmlBgmAttempted = false;
+        this._ambientStarted = false;
+        this._procCtx = null;
+        this._procNodes = [];
+        this._procMaster = null;
         this._installUnlockListeners();
         this._syncBirdAudio();
         this._syncBgmAudio();
@@ -40,66 +48,115 @@ class SoundManager {
             el.volume = this.musicVolume;
             el.muted = this.muted;
         }
-    }
-
-    _bindBgmOnce(bgm) {
-        if (bgm.dataset.bgmBound === '1') return;
-        bgm.dataset.bgmBound = '1';
-        bgm.addEventListener(
-            'error',
-            () => {
-                this._bgmDead = true;
-            },
-            { passive: true }
-        );
-    }
-
-    _tryStartBgm() {
-        const bgm = document.getElementById('bgmTheme');
-        if (!bgm || this.muted || this._bgmDead) return Promise.resolve(false);
-        this._bindBgmOnce(bgm);
-        bgm.volume = this.musicVolume;
-        bgm.muted = false;
-        bgm.loop = true;
-
-        const tryPlay = () =>
-            bgm
-                .play()
-                .then(() => true)
-                .catch(() => false);
-
-        if (bgm.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
-            return tryPlay();
+        if (this._procMaster) {
+            this._procMaster.gain.value = this.muted ? 0 : 0.09;
         }
+    }
 
+    /**
+     * Starts immediately inside the user-gesture stack (no await) so strict
+     * browsers still produce audible BGM when no MP3 is deployed yet.
+     */
+    _startProceduralAmbient() {
+        if (this._ambientStarted) return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        try {
+            const ctx = new AC();
+            this._procCtx = ctx;
+            const master = ctx.createGain();
+            master.gain.value = this.muted ? 0 : 0.09;
+            master.connect(ctx.destination);
+            this._procMaster = master;
+            this._procNodes = [];
+
+            const freqs = [130.81, 164.81, 196.0];
+            freqs.forEach((f, i) => {
+                const osc = ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.value = f;
+                const g = ctx.createGain();
+                g.gain.value = 0.22 - i * 0.05;
+                osc.connect(g);
+                g.connect(master);
+                osc.start();
+                this._procNodes.push(osc, g);
+            });
+
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(() => {});
+            }
+            this._ambientStarted = true;
+        } catch (_) {
+            this._procCtx = null;
+        }
+    }
+
+    _stopProceduralAmbient() {
+        try {
+            this._procNodes.forEach((n) => {
+                try {
+                    n.stop?.();
+                    n.disconnect?.();
+                } catch (_) {}
+            });
+            this._procNodes = [];
+            if (this._procMaster) {
+                this._procMaster.disconnect();
+                this._procMaster = null;
+            }
+            if (this._procCtx) {
+                this._procCtx.close().catch(() => {});
+                this._procCtx = null;
+            }
+        } catch (_) {}
+        this._ambientStarted = false;
+    }
+
+    _waitCanPlay(bgm) {
         return new Promise((resolve) => {
-            let settled = false;
-            const done = (ok) => {
-                if (settled) return;
-                settled = true;
-                bgm.removeEventListener('canplay', onCanPlay);
-                bgm.removeEventListener('canplaythrough', onCanPlayThrough);
+            if (bgm.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+                resolve();
+                return;
+            }
+            const onReady = () => {
+                bgm.removeEventListener('canplay', onReady);
+                bgm.removeEventListener('canplaythrough', onReady);
                 clearTimeout(tid);
-                resolve(ok);
+                resolve();
             };
-            const onCanPlay = () => {
-                tryPlay().then(done);
-            };
-            const onCanPlayThrough = () => {
-                tryPlay().then(done);
-            };
-            const tid = setTimeout(() => {
-                tryPlay().then(done);
-            }, 8000);
-
-            bgm.addEventListener('canplay', onCanPlay, { once: true });
-            bgm.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
+            const tid = setTimeout(onReady, 12000);
+            bgm.addEventListener('canplay', onReady, { once: true });
+            bgm.addEventListener('canplaythrough', onReady, { once: true });
             try {
                 bgm.load();
             } catch (_) {
-                tryPlay().then(done);
+                resolve();
             }
         });
+    }
+
+    async _tryHtmlBgmSequence() {
+        const bgm = document.getElementById('bgmTheme');
+        if (!bgm || this.muted || this._htmlBgmPlaying) return true;
+
+        for (let i = 0; i < BGM_URLS.length; i++) {
+            const url = BGM_URLS[i];
+            bgm.src = url;
+            bgm.loop = true;
+            bgm.volume = this.musicVolume;
+            bgm.muted = this.muted;
+            await this._waitCanPlay(bgm);
+            try {
+                await bgm.play();
+                this._htmlBgmPlaying = true;
+                this._stopProceduralAmbient();
+                return true;
+            } catch (_) {
+                /* try next URL */
+            }
+        }
+        return false;
     }
 
     _unlockViaChirpBlip() {
@@ -117,22 +174,17 @@ class SoundManager {
         }
     }
 
-    /**
-     * After a user gesture: start looping BGM when the file is ready; chirp blip only if needed to unlock SFX.
-     */
     ensureContext() {
         if (this.muted) return null;
 
-        if (!this._bgmStarted && !this._bgmDead) {
-            this._tryStartBgm().then((ok) => {
-                if (ok) {
-                    this._bgmStarted = true;
-                    this._audioUnlocked = true;
-                } else if (!this._audioUnlocked) {
-                    this._unlockViaChirpBlip();
-                }
-            });
-            return null;
+        if (!this._ambientStarted) {
+            this._startProceduralAmbient();
+            this._audioUnlocked = true;
+        }
+
+        if (!this._htmlBgmAttempted) {
+            this._htmlBgmAttempted = true;
+            this._tryHtmlBgmSequence().catch(() => {});
         }
 
         if (!this._audioUnlocked) {
@@ -141,7 +193,6 @@ class SoundManager {
         return null;
     }
 
-    /** One full chirp from the start (call from SHOOT after a valid launch). */
     playShotSound() {
         if (this.muted) return;
         const el = document.getElementById('sfxBirdChirp');
@@ -174,7 +225,7 @@ class SoundManager {
         if (bgm) {
             if (this.muted) {
                 bgm.pause();
-            } else if (this._bgmStarted) {
+            } else if (this._htmlBgmPlaying) {
                 bgm.play().catch(() => {});
             }
         }

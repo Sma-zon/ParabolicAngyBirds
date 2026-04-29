@@ -79,11 +79,8 @@
     </div>
 
     <div class="sfx-mp3" aria-hidden="true">
-        <audio id="bgmTheme" preload="auto" loop playsinline>
-            <!-- Try common filenames (spaces vs no spaces); browser uses first loadable source. -->
-            <source src="sounds/02-angry-birds-theme.mp3" type="audio/mpeg" />
-            <source src="sounds/02.%20Angry%20Birds%20Theme.mp3" type="audio/mpeg" />
-        </audio>
+        <!-- src set from js/sound-manager.js (tries several theme filenames). -->
+        <audio id="bgmTheme" preload="metadata" loop playsinline></audio>
         <audio id="sfxBirdChirp" preload="auto"><source src="sounds/bird-chirp.mp3" type="audio/mpeg"></audio>
     </div>
     

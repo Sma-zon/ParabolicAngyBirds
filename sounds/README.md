@@ -2,11 +2,15 @@
 
 ## Background theme (MP3)
 
-Add **`02. Angry Birds Theme.mp3`** in this folder (full track ~1:08). It **loops** after each complete play. Volume is set lower than the bird chirp so the chirp stays on top when you shoot.
+The game tries these paths **in order** (see `BGM_URLS` in `js/sound-manager.js`):
 
-Referenced in `index.html` as `sounds/02.%20Angry%20Birds%20Theme.mp3` (same file; URL-encoded spaces).
+1. `sounds/02-angry-birds-theme.mp3`
+2. `sounds/02. Angry Birds Theme.mp3` (URL-encoded in code)
+3. `sounds/bgm-theme.mp3`
 
-If the file is missing, the game still runs; only the theme stays silent after one failed load attempt (refresh after adding the file).
+Add your **~1:08** theme as one of those names; it **loops** when loaded. Volume is lower than the bird chirp.
+
+**If no MP3 loads** (missing file or wrong name), a **soft built‑in pad** still plays after your first tap/keypress so you always hear background music on supported browsers.
 
 ## Bird flying (MP3)
 
