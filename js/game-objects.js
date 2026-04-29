@@ -4,32 +4,66 @@
  */
 
 class Bird {
-    constructor(x, y) {
+    constructor(x, y, graphConfig = null) {
         this.startX = x;
         this.startY = y;
         this.x = x;
         this.y = y;
         this.vx = 0;
         this.vy = 0;
-        this.radius = 8;
+        this.radius = 14;
         this.color = '#FFD700';
         this.active = false;
         this.trail = [];
         this.maxTrailLength = 30;
+        this.graphConfig = graphConfig;
+        this.useEquationFlight = false;
+        this.graphX = 0;
+        this.equationA = 0;
+        this.equationH = 0;
+        this.equationK = 0;
+        this.equationSpeed = 3;
     }
     
     setVelocity(vx, vy) {
         this.vx = vx;
         this.vy = vy;
         this.active = true;
+        this.useEquationFlight = false;
+    }
+
+    launchWithEquation(a, h, k, speed = 3) {
+        this.equationA = a;
+        this.equationH = h;
+        this.equationK = k;
+        this.equationSpeed = speed;
+        this.graphX = 0;
+        this.active = true;
+        this.useEquationFlight = true;
+        this.vx = speed;
+        this.vy = 0;
+        this.x = this.startX;
+        this.y = this.startY;
     }
     
     update() {
         if (!this.active) return;
-        
-        this.vy += 0.4; // gravity
-        this.x += this.vx;
-        this.y += this.vy;
+
+        if (this.useEquationFlight && this.graphConfig) {
+            const prevX = this.x;
+            const prevY = this.y;
+            this.graphX += this.equationSpeed;
+            const graphY = -this.equationA * Math.pow(this.graphX - this.equationH, 2) + this.equationK;
+
+            this.x = this.graphConfig.originX + this.graphX;
+            this.y = this.graphConfig.originY - graphY;
+            this.vx = this.x - prevX;
+            this.vy = this.y - prevY;
+        } else {
+            this.vy += 0.4; // gravity
+            this.x += this.vx;
+            this.y += this.vy;
+        }
         
         // Add to trail
         this.trail.push({x: this.x, y: this.y});
@@ -38,8 +72,9 @@ class Bird {
         }
         
         // Stop if falls off screen
-        if (this.y > 650 || this.x > 1050) {
+        if (this.y > 650 || this.y < -50 || this.x > 1050) {
             this.active = false;
+            this.useEquationFlight = false;
             this.trail = [];
         }
     }
@@ -65,8 +100,8 @@ class Bird {
         
         // Draw eyes
         ctx.fillStyle = '#000';
-        ctx.fillRect(this.x - 3, this.y - 2, 2, 2);
-        ctx.fillRect(this.x + 1, this.y - 2, 2, 2);
+        ctx.fillRect(this.x - 5, this.y - 4, 3, 3);
+        ctx.fillRect(this.x + 2, this.y - 4, 3, 3);
     }
     
     reset() {
@@ -75,6 +110,8 @@ class Bird {
         this.vx = 0;
         this.vy = 0;
         this.active = false;
+        this.useEquationFlight = false;
+        this.graphX = 0;
         this.trail = [];
     }
 }

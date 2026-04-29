@@ -22,7 +22,16 @@
             
             <div class="control-panel">
                 <h2>Enter Parabolic Equation</h2>
-                <p class="equation-format">Format: y = -a(x-h)² + k</p>
+                <p class="equation-format">Format: y = -a(x-h)^2 + k</p>
+                <div class="input-group">
+                    <label for="equationInput">Full equation (optional):</label>
+                    <input
+                        type="text"
+                        id="equationInput"
+                        class="equation-input"
+                        placeholder="Example: y = -1/2(x-300)^2 + 120"
+                    >
+                </div>
                 <div class="input-group">
                     <label>a (vertical stretch): <input type="number" id="inputA" value="0.01" step="0.001" min="0.001"></label>
                     <label>h (horizontal shift): <input type="number" id="inputH" value="250" step="1"></label>

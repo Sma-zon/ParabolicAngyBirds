@@ -7,11 +7,16 @@ class ParabolicBirdsGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.graphOriginX = 80;
+        this.graphOriginY = this.canvas.height - 60;
         this.gameState = 'menu'; // menu, playing, levelComplete, gameOver
         this.currentLevel = 1;
         this.score = 0;
         this.attempts = 3;
-        this.bird = new Bird(100, 550);
+        this.bird = new Bird(this.graphOriginX, this.graphOriginY, {
+            originX: this.graphOriginX,
+            originY: this.graphOriginY
+        });
         this.towers = [];
         this.collisionsThisFrame = new Set();
         
@@ -45,34 +50,104 @@ class ParabolicBirdsGame {
             this.showMessage('Wait for current shot to finish!', 'error');
             return;
         }
-        
-        const a = parseFloat(document.getElementById('inputA').value);
-        const h = parseFloat(document.getElementById('inputH').value);
-        const k = parseFloat(document.getElementById('inputK').value);
+
+        const equationInput = document.getElementById('equationInput');
+        const equationText = equationInput ? equationInput.value.trim() : '';
+        let a;
+        let h;
+        let k;
+
+        if (equationText) {
+            const parsedEquation = this.parseEquation(equationText);
+            if (!parsedEquation) {
+                this.showMessage('Invalid full equation. Use y = -a(x-h)^2 + k', 'error');
+                return;
+            }
+
+            a = parsedEquation.a;
+            h = parsedEquation.h;
+            k = parsedEquation.k;
+            this.syncParameterInputs(a, h, k);
+        } else {
+            a = parseFloat(document.getElementById('inputA').value);
+            h = parseFloat(document.getElementById('inputH').value);
+            k = parseFloat(document.getElementById('inputK').value);
+        }
         
         // Validation
         if (isNaN(a) || isNaN(h) || isNaN(k) || a <= 0) {
             this.showMessage('Invalid equation values!', 'error');
             return;
         }
-        
-        // Calculate initial velocity for parabolic path
-        // y = -a(x-h)^2 + k
-        // At x=100 (starting point), calculate the derivative to find velocity
-        const startX = this.bird.x;
-        const nextX = startX + 5;
-        const y1 = -a * Math.pow(startX - h, 2) + k;
-        const y2 = -a * Math.pow(nextX - h, 2) + k;
-        const slope = (y2 - y1) / 5;
-        
-        // Set velocity to follow parabolic path
-        this.bird.setVelocity(3, slope * 3);
+
+        // Shift horizontally so the left x-intercept is exactly at graph origin (0,0).
+        // This keeps the parabola shape (a, k) while aligning launch to the graph origin.
+        const alignedH = this.getAlignedHForOriginCrossing(a, h, k);
+        if (alignedH === null) {
+            this.showMessage('Equation must cross y=0 to align at origin. Try k >= 0.', 'error');
+            return;
+        }
+
+        this.bird.launchWithEquation(a, alignedH, k, 3);
         this.attempts--;
         soundManager.play('shoot');
         this.updateUI();
         
         // Display the equation being tested
-        this.showMessage(`Testing: y = -${a}(x-${h})² + ${k}`, 'info');
+        this.showMessage(`Testing (origin-aligned): y = -${a}(x-${alignedH})² + ${k}`, 'info');
+    }
+
+    getAlignedHForOriginCrossing(a, h, k) {
+        if (k < 0) return null;
+        const rootOffset = Math.sqrt(k / a);
+        const leftIntercept = h - rootOffset;
+        return h - leftIntercept;
+    }
+
+    parseEquation(equationText) {
+        const normalized = equationText.replace(/\s+/g, '');
+        const equationRegex = /^(?:y=)?-?(\d+(?:\.\d+)?(?:\/\d+(?:\.\d+)?)?)\(x([+-])(\d+(?:\.\d+)?)\)(?:\^2|²)([+-])(\d+(?:\.\d+)?)$/i;
+        const match = normalized.match(equationRegex);
+        if (!match) return null;
+
+        const aValue = this.parseFraction(match[1]);
+        const hMagnitude = parseFloat(match[3]);
+        const kMagnitude = parseFloat(match[5]);
+        if (isNaN(aValue) || isNaN(hMagnitude) || isNaN(kMagnitude) || aValue <= 0) {
+            return null;
+        }
+
+        const hValue = match[2] === '-' ? hMagnitude : -hMagnitude;
+        const kValue = match[4] === '+' ? kMagnitude : -kMagnitude;
+
+        return {
+            a: aValue,
+            h: hValue,
+            k: kValue
+        };
+    }
+
+    parseFraction(value) {
+        if (!value.includes('/')) {
+            return parseFloat(value);
+        }
+
+        const parts = value.split('/');
+        if (parts.length !== 2) return NaN;
+
+        const numerator = parseFloat(parts[0]);
+        const denominator = parseFloat(parts[1]);
+        if (isNaN(numerator) || isNaN(denominator) || denominator === 0) {
+            return NaN;
+        }
+
+        return numerator / denominator;
+    }
+
+    syncParameterInputs(a, h, k) {
+        document.getElementById('inputA').value = Number(a.toFixed(6)).toString();
+        document.getElementById('inputH').value = Number(h.toFixed(3)).toString();
+        document.getElementById('inputK').value = Number(k.toFixed(3)).toString();
     }
     
     update() {
@@ -99,6 +174,9 @@ class ParabolicBirdsGame {
                     
                     // Reflect bird
                     const response = CollisionDetector.getCollisionResponse(this.bird, block);
+                    // After first impact, switch from equation-follow mode to normal physics.
+                    // This lets bounce/collision responses actually take effect.
+                    this.bird.useEquationFlight = false;
                     this.bird.vx = response.vx;
                     this.bird.vy = response.vy;
                     
@@ -136,16 +214,17 @@ class ParabolicBirdsGame {
         
         // Draw grid
         this.drawGrid();
+        this.drawRightEdgeTowerWithPig();
         
         // Draw bird launch area
-        this.ctx.strokeStyle = 'rgba(100, 100, 100, 0.3)';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(70, 520, 60, 60);
-        this.ctx.fillStyle = 'rgba(200, 200, 200, 0.1)';
-        this.ctx.fillRect(70, 520, 60, 60);
-        this.ctx.fillStyle = '#999';
-        this.ctx.font = 'bold 12px Arial';
-        this.ctx.fillText('LAUNCH', 75, 560);
+        this.ctx.strokeStyle = 'rgba(70, 70, 70, 0.8)';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(this.graphOriginX - 30, this.graphOriginY - 30, 60, 60);
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        this.ctx.fillRect(this.graphOriginX - 30, this.graphOriginY - 30, 60, 60);
+        this.ctx.fillStyle = '#333';
+        this.ctx.font = 'bold 11px Arial';
+        this.ctx.fillText('LAUNCH', this.graphOriginX - 24, this.graphOriginY + 10);
         
         // Draw towers
         this.towers.forEach(tower => tower.draw(this.ctx));
@@ -164,26 +243,109 @@ class ParabolicBirdsGame {
     }
     
     drawGrid() {
-        this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.2)';
+        this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
         this.ctx.lineWidth = 1;
         
         const gridSize = 50;
         
-        // Vertical lines
-        for (let x = 0; x < this.canvas.width; x += gridSize) {
+        // Vertical graph lines from y-axis to the right
+        for (let x = this.graphOriginX; x < this.canvas.width; x += gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(x, 0);
             this.ctx.lineTo(x, this.canvas.height);
             this.ctx.stroke();
         }
         
-        // Horizontal lines
-        for (let y = 0; y < this.canvas.height; y += gridSize) {
+        // Horizontal graph lines from x-axis upward
+        for (let y = this.graphOriginY; y >= 0; y -= gridSize) {
             this.ctx.beginPath();
             this.ctx.moveTo(0, y);
             this.ctx.lineTo(this.canvas.width, y);
             this.ctx.stroke();
         }
+
+        // Axes
+        this.ctx.strokeStyle = 'rgba(40, 40, 40, 0.85)';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.graphOriginX, this.canvas.height);
+        this.ctx.lineTo(this.graphOriginX, 0);
+        this.ctx.stroke();
+
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, this.graphOriginY);
+        this.ctx.lineTo(this.canvas.width, this.graphOriginY);
+        this.ctx.stroke();
+
+        // Origin marker and label
+        this.ctx.fillStyle = '#222';
+        this.ctx.beginPath();
+        this.ctx.arc(this.graphOriginX, this.graphOriginY, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.font = '12px Arial';
+        this.ctx.fillText('(0,0)', this.graphOriginX + 8, this.graphOriginY - 8);
+    }
+
+    drawRightEdgeTowerWithPig() {
+        const towerBaseX = this.canvas.width - 125;
+        const towerTopY = 220;
+        const towerWidth = 85;
+        const towerHeight = this.graphOriginY - towerTopY;
+
+        // Tower body
+        this.ctx.fillStyle = '#8b8f9a';
+        this.ctx.fillRect(towerBaseX, towerTopY, towerWidth, towerHeight);
+        this.ctx.strokeStyle = '#5f6470';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(towerBaseX, towerTopY, towerWidth, towerHeight);
+
+        // Brick lines
+        this.ctx.strokeStyle = 'rgba(70, 75, 85, 0.45)';
+        this.ctx.lineWidth = 1;
+        for (let y = towerTopY + 16; y < towerTopY + towerHeight; y += 16) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(towerBaseX, y);
+            this.ctx.lineTo(towerBaseX + towerWidth, y);
+            this.ctx.stroke();
+        }
+
+        // Crenellations
+        this.ctx.fillStyle = '#767b88';
+        const notchWidth = 14;
+        const notchGap = 7;
+        for (let x = towerBaseX + 4; x <= towerBaseX + towerWidth - notchWidth - 4; x += notchWidth + notchGap) {
+            this.ctx.fillRect(x, towerTopY - 16, notchWidth, 16);
+        }
+
+        // Pig
+        const pigX = towerBaseX + towerWidth / 2;
+        const pigY = towerTopY - 30;
+        this.ctx.fillStyle = '#7ed957';
+        this.ctx.beginPath();
+        this.ctx.arc(pigX, pigY, 16, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#4a8f36';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        // Pig ears
+        this.ctx.fillStyle = '#7ed957';
+        this.ctx.beginPath();
+        this.ctx.arc(pigX - 8, pigY - 14, 5, 0, Math.PI * 2);
+        this.ctx.arc(pigX + 8, pigY - 14, 5, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Pig face
+        this.ctx.fillStyle = '#1e1e1e';
+        this.ctx.fillRect(pigX - 6, pigY - 3, 3, 3);
+        this.ctx.fillRect(pigX + 3, pigY - 3, 3, 3);
+        this.ctx.fillStyle = '#5dbb46';
+        this.ctx.beginPath();
+        this.ctx.ellipse(pigX, pigY + 5, 6, 4, 0, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#1e1e1e';
+        this.ctx.fillRect(pigX - 2, pigY + 4, 1.5, 1.5);
+        this.ctx.fillRect(pigX + 1, pigY + 4, 1.5, 1.5);
     }
     
     completeLevel() {
