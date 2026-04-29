@@ -22,9 +22,9 @@ A fun, interactive game that teaches parabolic equations through gameplay! Playe
 - Smooth animations and transitions
 
 ### 🔊 Audio System
-- Sound effects for shooting, collisions, and level completion
-- Web Audio API fallback if audio files are unavailable
-- Adjustable volume control (in code)
+- Web Audio API procedural sounds (no external audio files)
+- Random bird chirps while flying, pig oink/yelp on tower fall, tower impact on hits
+- Adjustable volume in `js/sound-manager.js`
 
 ### 📊 Level System
 1. **Simple Start** - Learn the basics with an easy target
@@ -79,19 +79,13 @@ ParabolicAngyBirds/
 │   ├── sound-manager.js      # Audio handling
 │   └── particle-system.js    # Visual effects
 ├── sounds/
-│   ├── shoot.mp3
-│   ├── collision.mp3
-│   ├── success.mp3
-│   └── fail.mp3
+│   └── README.md             # Notes (no audio assets required)
 └── README.md
 ```
 
-## Sound Effects Setup
+## Sound Effects
 
-Optional: Add audio files to the `sounds/` directory for better audio experience.
-Supported formats: MP3, WAV, OGG
-
-If audio files are not available, the game uses Web Audio API to generate synthetic sounds.
+All sounds are synthesized in `js/sound-manager.js`. See `sounds/README.md` for details.
 
 ## Mathematical Concepts
 

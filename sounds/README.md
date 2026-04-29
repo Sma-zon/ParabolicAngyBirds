@@ -1,26 +1,9 @@
-# Sound Effects
+# Sounds
 
-To use sound effects in the game, add the following audio files to this directory:
+This project uses **Web Audio only** — no MP3 or other files are required.
 
-- `shoot.mp3` - Sound played when the bird is launched
-- `collision.mp3` - Sound played when the bird hits a block
-- `success.mp3` - Sound played when a level is completed
-- `fail.mp3` - Sound played when the game is over
+All effects are generated in `js/sound-manager.js`:
 
-## Fallback Sound Support
-
-If audio files are not available, the game will attempt to use Web Audio API to generate fallback sounds.
-The game will continue to work even without these files.
-
-## Recommended Sound Effects
-
-You can find free sound effects from:
-- https://freesound.org
-- https://pixabay.com/sound-effects
-- https://www.zapsplat.com
-
-### Suggestions:
-- **shoot.mp3**: A short whoosh or launch sound (0.1-0.2 seconds)
-- **collision.mp3**: A hard impact or crash sound (0.2-0.3 seconds)
-- **success.mp3**: A triumphant chime or victory sound (0.3-0.5 seconds)
-- **fail.mp3**: A sad or negative buzzer sound (0.3-0.5 seconds)
+- **Bird** — short random chirps while the bird is in the air  
+- **Pig** — two cues: oink when the tower starts to fall, yelp when it hits the ground  
+- **Tower** — impact noise when the bird hits tower blocks  

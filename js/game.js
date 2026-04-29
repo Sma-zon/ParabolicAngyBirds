@@ -113,7 +113,7 @@ class ParabolicBirdsGame {
         // Use player equation exactly as entered (no auto-correction).
         this.bird.launchWithEquation(a, h, k, 3);
         this.shotsFired++;
-        soundManager.play('shoot');
+        soundManager.ensureContext();
         this.updateUI();
         
         // Display the equation being tested
@@ -201,7 +201,7 @@ class ParabolicBirdsGame {
                     if (block.damage(damageAmount)) {
                         particleSystem.createExplosion(block.x + block.width / 2, block.y + block.height / 2, '#ff6b6b');
                         this.score += 10;
-                        soundManager.play('collision');
+                        soundManager.playTowerCollision();
                     }
 
                     const response = CollisionDetector.getCollisionResponse(this.bird, block);
@@ -225,6 +225,10 @@ class ParabolicBirdsGame {
 
         particleSystem.update();
         this.collisionsThisFrame.clear();
+
+        if (this.gameState === 'playing') {
+            soundManager.tickBirdFlying(this.bird.active);
+        }
     }
 
     startTowerFall(tower, direction) {
@@ -275,6 +279,7 @@ class ParabolicBirdsGame {
             pigAngVel: (Math.random() - 0.5) * 0.14,
             frame: 0
         };
+        soundManager.playPigOink();
     }
 
     updateTowerFallAnimation() {
@@ -346,6 +351,7 @@ class ParabolicBirdsGame {
             '#ffaa55'
         );
         particleSystem.createExplosion(fa.pigX, fa.pigY + 8, '#7ed957');
+        soundManager.playPigYelp();
     }
     
     draw() {
@@ -507,7 +513,7 @@ class ParabolicBirdsGame {
         this.gameState = 'levelComplete';
         const bonus = 100;
         this.score += bonus;
-        soundManager.play('success');
+        soundManager.playLevelWin();
         this.showMessage(`Level Complete! Bonus: +${bonus}`, 'success');
         this.updateUI();
     }
