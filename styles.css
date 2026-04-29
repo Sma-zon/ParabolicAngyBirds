@@ -80,13 +80,15 @@ main {
 
 .control-panel {
     flex: 1 1 320px;
-    min-width: 280px;
+    min-width: 300px;
     background: white;
     padding: 20px;
     border-radius: 8px;
     border: 2px solid var(--border-color);
     overflow-y: auto;
-    max-height: 600px;
+    max-height: calc(100vh - 140px);
+    position: sticky;
+    top: 16px;
 }
 
 .control-panel h2 {
@@ -108,6 +110,41 @@ main {
     margin-bottom: 20px;
 }
 
+.input-mode-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.mode-tab {
+    flex: 1;
+    border: 2px solid #d9c7a4;
+    background: #f7ecd5;
+    color: #6a4e26;
+    border-radius: 8px 8px 0 0;
+    padding: 8px 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mode-tab.active {
+    background: #ffecc6;
+    border-bottom-color: #ffecc6;
+}
+
+.input-panel {
+    display: none;
+    background: #ffecc6;
+    border: 2px solid #d9c7a4;
+    border-radius: 0 8px 8px 8px;
+    padding: 12px;
+    margin-bottom: 14px;
+}
+
+.input-panel.active {
+    display: block;
+}
+
 .input-group label {
     display: block;
     margin-bottom: 10px;
@@ -116,12 +153,12 @@ main {
 }
 
 .input-group input {
-    width: 100px;
-    padding: 6px 8px;
+    width: 120px;
+    padding: 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
     margin-left: 10px;
-    font-size: 0.9em;
+    font-size: 1em;
 }
 
 .equation-input {
@@ -129,6 +166,7 @@ main {
     margin-left: 0 !important;
     margin-top: 6px;
     font-family: 'Courier New', monospace;
+    background: #fffaf0;
 }
 
 .button-group {
@@ -140,7 +178,7 @@ main {
 
 .btn-primary,
 .btn-secondary {
-    padding: 12px 20px;
+    padding: 14px 20px;
     border: none;
     border-radius: 6px;
     font-size: 1em;
@@ -235,6 +273,7 @@ footer {
     .control-panel {
         flex: 1;
         max-height: none;
+        position: static;
     }
     
     #gameCanvas {

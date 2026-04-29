@@ -12,7 +12,8 @@ class ParabolicBirdsGame {
         this.gameState = 'menu'; // menu, playing, levelComplete, gameOver
         this.currentLevel = 1;
         this.score = 0;
-        this.attempts = 3;
+        this.shotsFired = 0;
+        this.currentInputMode = 'full';
         this.bird = new Bird(this.graphOriginX, this.graphOriginY, {
             originX: this.graphOriginX,
             originY: this.graphOriginY
@@ -27,8 +28,9 @@ class ParabolicBirdsGame {
     
     setupEventListeners() {
         document.getElementById('shootBtn').addEventListener('click', () => this.shoot());
-        document.getElementById('resetBtn').addEventListener('click', () => this.resetLevel());
         document.getElementById('nextLevelBtn').addEventListener('click', () => this.nextLevel());
+        document.getElementById('fullEquationTab').addEventListener('click', () => this.switchInputMode('full'));
+        document.getElementById('splitInputsTab').addEventListener('click', () => this.switchInputMode('split'));
     }
     
     loadLevel(levelId) {
@@ -38,7 +40,6 @@ class ParabolicBirdsGame {
         this.currentLevel = levelId;
         this.bird.reset();
         this.towers = createLevelTowers(level);
-        this.attempts = 3;
         this.gameState = 'playing';
         particleSystem.clear();
         this.updateUI();
@@ -51,13 +52,13 @@ class ParabolicBirdsGame {
             return;
         }
 
-        const equationInput = document.getElementById('equationInput');
-        const equationText = equationInput ? equationInput.value.trim() : '';
         let a;
         let h;
         let k;
 
-        if (equationText) {
+        if (this.currentInputMode === 'full') {
+            const equationInput = document.getElementById('equationInput');
+            const equationText = equationInput ? equationInput.value.trim() : '';
             const parsedEquation = this.parseEquation(equationText);
             if (!parsedEquation) {
                 this.showMessage('Invalid full equation. Use y = -a(x-h)^2 + k', 'error');
@@ -69,9 +70,9 @@ class ParabolicBirdsGame {
             k = parsedEquation.k;
             this.syncParameterInputs(a, h, k);
         } else {
-            a = parseFloat(document.getElementById('inputA').value);
-            h = parseFloat(document.getElementById('inputH').value);
-            k = parseFloat(document.getElementById('inputK').value);
+            a = this.parseACoefficient(document.getElementById('inputA').value);
+            h = this.parseFlexibleNumber(document.getElementById('inputH').value);
+            k = this.parseFlexibleNumber(document.getElementById('inputK').value);
         }
         
         // Validation
@@ -80,28 +81,14 @@ class ParabolicBirdsGame {
             return;
         }
 
-        // Shift horizontally so the left x-intercept is exactly at graph origin (0,0).
-        // This keeps the parabola shape (a, k) while aligning launch to the graph origin.
-        const alignedH = this.getAlignedHForOriginCrossing(a, h, k);
-        if (alignedH === null) {
-            this.showMessage('Equation must cross y=0 to align at origin. Try k >= 0.', 'error');
-            return;
-        }
-
-        this.bird.launchWithEquation(a, alignedH, k, 3);
-        this.attempts--;
+        // Use player equation exactly as entered (no auto-correction).
+        this.bird.launchWithEquation(a, h, k, 3);
+        this.shotsFired++;
         soundManager.play('shoot');
         this.updateUI();
         
         // Display the equation being tested
-        this.showMessage(`Testing (origin-aligned): y = -${a}(x-${alignedH})² + ${k}`, 'info');
-    }
-
-    getAlignedHForOriginCrossing(a, h, k) {
-        if (k < 0) return null;
-        const rootOffset = Math.sqrt(k / a);
-        const leftIntercept = h - rootOffset;
-        return h - leftIntercept;
+        this.showMessage(`Testing: y = -${a}(x-${h})² + ${k}`, 'info');
     }
 
     parseEquation(equationText) {
@@ -144,12 +131,26 @@ class ParabolicBirdsGame {
         return numerator / denominator;
     }
 
+    parseFlexibleNumber(value) {
+        if (value === null || value === undefined) return NaN;
+        const normalized = value.toString().trim().replace(/\s+/g, '');
+        if (!normalized) return NaN;
+        return this.parseFraction(normalized);
+    }
+
+    parseACoefficient(value) {
+        const parsed = this.parseFlexibleNumber(value);
+        if (isNaN(parsed)) return NaN;
+        // Accept -1/2 or 1/2 in manual input; gameplay formula uses y = -a(x-h)^2 + k.
+        return Math.abs(parsed);
+    }
+
     syncParameterInputs(a, h, k) {
         document.getElementById('inputA').value = Number(a.toFixed(6)).toString();
         document.getElementById('inputH').value = Number(h.toFixed(3)).toString();
         document.getElementById('inputK').value = Number(k.toFixed(3)).toString();
     }
-    
+
     update() {
         if (this.gameState !== 'playing') return;
         
@@ -179,6 +180,8 @@ class ParabolicBirdsGame {
                     this.bird.useEquationFlight = false;
                     this.bird.vx = response.vx;
                     this.bird.vy = response.vy;
+                    // Auto-reset after hitting any tower block, with no life limits.
+                    this.bird.reset();
                     
                     this.collisionsThisFrame.add(collisionKey);
                 }
@@ -191,16 +194,6 @@ class ParabolicBirdsGame {
             if (this.towers.every(tower => tower.isDestroyed())) {
                 this.completeLevel();
             }
-        } else if (this.attempts > 0) {
-            // Check if bird stopped
-            if (Math.abs(this.bird.vx) < 0.1 && Math.abs(this.bird.vy) < 0.1) {
-                // Bird stopped, can shoot again
-            }
-        } else {
-            // Out of attempts
-            this.gameState = 'levelFailed';
-            this.showMessage('Game Over! Out of attempts. Try again!', 'error');
-            soundManager.play('fail');
         }
         
         particleSystem.update();
@@ -214,7 +207,7 @@ class ParabolicBirdsGame {
         
         // Draw grid
         this.drawGrid();
-        this.drawRightEdgeTowerWithPig();
+        this.drawStiltTowerWithPig();
         
         // Draw bird launch area
         this.ctx.strokeStyle = 'rgba(70, 70, 70, 0.8)';
@@ -286,40 +279,38 @@ class ParabolicBirdsGame {
         this.ctx.fillText('(0,0)', this.graphOriginX + 8, this.graphOriginY - 8);
     }
 
-    drawRightEdgeTowerWithPig() {
-        const towerBaseX = this.canvas.width - 125;
-        const towerTopY = 220;
-        const towerWidth = 85;
-        const towerHeight = this.graphOriginY - towerTopY;
+    drawStiltTowerWithPig() {
+        const towerBaseX = 650;
+        const towerTopY = 300;
+        const towerWidth = 120;
+        const towerHeight = 110;
+        const groundY = this.graphOriginY;
 
-        // Tower body
-        this.ctx.fillStyle = '#8b8f9a';
+        // Wooden stilts
+        this.ctx.fillStyle = '#6f3e1d';
+        this.ctx.fillRect(towerBaseX + 15, towerTopY + towerHeight, 12, groundY - (towerTopY + towerHeight));
+        this.ctx.fillRect(towerBaseX + towerWidth - 27, towerTopY + towerHeight, 12, groundY - (towerTopY + towerHeight));
+
+        // Brown wooden tower
+        this.ctx.fillStyle = '#8b4513';
         this.ctx.fillRect(towerBaseX, towerTopY, towerWidth, towerHeight);
-        this.ctx.strokeStyle = '#5f6470';
+        this.ctx.strokeStyle = '#5a2f0f';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(towerBaseX, towerTopY, towerWidth, towerHeight);
 
-        // Brick lines
-        this.ctx.strokeStyle = 'rgba(70, 75, 85, 0.45)';
+        // Wood plank lines
+        this.ctx.strokeStyle = 'rgba(70, 40, 15, 0.4)';
         this.ctx.lineWidth = 1;
-        for (let y = towerTopY + 16; y < towerTopY + towerHeight; y += 16) {
+        for (let y = towerTopY + 18; y < towerTopY + towerHeight; y += 18) {
             this.ctx.beginPath();
             this.ctx.moveTo(towerBaseX, y);
             this.ctx.lineTo(towerBaseX + towerWidth, y);
             this.ctx.stroke();
         }
 
-        // Crenellations
-        this.ctx.fillStyle = '#767b88';
-        const notchWidth = 14;
-        const notchGap = 7;
-        for (let x = towerBaseX + 4; x <= towerBaseX + towerWidth - notchWidth - 4; x += notchWidth + notchGap) {
-            this.ctx.fillRect(x, towerTopY - 16, notchWidth, 16);
-        }
-
         // Pig
         const pigX = towerBaseX + towerWidth / 2;
-        const pigY = towerTopY - 30;
+        const pigY = towerTopY - 24;
         this.ctx.fillStyle = '#7ed957';
         this.ctx.beginPath();
         this.ctx.arc(pigX, pigY, 16, 0, Math.PI * 2);
@@ -350,7 +341,7 @@ class ParabolicBirdsGame {
     
     completeLevel() {
         this.gameState = 'levelComplete';
-        const bonus = this.attempts * 50;
+        const bonus = 100;
         this.score += bonus;
         soundManager.play('success');
         this.showMessage(`Level Complete! Bonus: +${bonus}`, 'success');
@@ -376,11 +367,32 @@ class ParabolicBirdsGame {
     updateUI() {
         document.getElementById('levelDisplay').textContent = `Level: ${this.currentLevel}`;
         document.getElementById('scoreDisplay').textContent = `Score: ${this.score}`;
-        document.getElementById('attemptsDisplay').textContent = `Attempts: ${this.attempts}`;
+        document.getElementById('attemptsDisplay').textContent = `Shots: Unlimited`;
         
         // Enable/disable buttons
         document.getElementById('shootBtn').disabled = this.bird.active || this.gameState !== 'playing';
         document.getElementById('nextLevelBtn').disabled = this.gameState !== 'levelComplete';
+    }
+
+    switchInputMode(mode) {
+        const fullTab = document.getElementById('fullEquationTab');
+        const splitTab = document.getElementById('splitInputsTab');
+        const fullPanel = document.getElementById('fullEquationPanel');
+        const splitPanel = document.getElementById('splitInputsPanel');
+
+        if (mode === 'full') {
+            this.currentInputMode = 'full';
+            fullTab.classList.add('active');
+            splitTab.classList.remove('active');
+            fullPanel.classList.add('active');
+            splitPanel.classList.remove('active');
+        } else {
+            this.currentInputMode = 'split';
+            splitTab.classList.add('active');
+            fullTab.classList.remove('active');
+            splitPanel.classList.add('active');
+            fullPanel.classList.remove('active');
+        }
     }
     
     showMessage(text, type) {

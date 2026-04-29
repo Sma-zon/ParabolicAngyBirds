@@ -13,7 +13,7 @@
             <div class="info">
                 <span id="levelDisplay">Level: 1</span>
                 <span id="scoreDisplay">Score: 0</span>
-                <span id="attemptsDisplay">Attempts: 3</span>
+                <span id="attemptsDisplay">Shots: Unlimited</span>
             </div>
         </header>
         
@@ -23,23 +23,32 @@
             <div class="control-panel">
                 <h2>Enter Parabolic Equation</h2>
                 <p class="equation-format">Format: y = -a(x-h)^2 + k</p>
-                <div class="input-group">
-                    <label for="equationInput">Full equation (optional):</label>
-                    <input
-                        type="text"
-                        id="equationInput"
-                        class="equation-input"
-                        placeholder="Example: y = -1/2(x-300)^2 + 120"
-                    >
+                <div class="input-mode-tabs">
+                    <button id="fullEquationTab" class="mode-tab active">Full Equation</button>
+                    <button id="splitInputsTab" class="mode-tab">a / h / k Inputs</button>
                 </div>
-                <div class="input-group">
-                    <label>a (vertical stretch): <input type="number" id="inputA" value="0.01" step="0.001" min="0.001"></label>
-                    <label>h (horizontal shift): <input type="number" id="inputH" value="250" step="1"></label>
-                    <label>k (vertical shift): <input type="number" id="inputK" value="100" step="1"></label>
+
+                <div id="fullEquationPanel" class="input-panel active">
+                    <div class="input-group">
+                        <label for="equationInput">Full equation:</label>
+                        <input
+                            type="text"
+                            id="equationInput"
+                            class="equation-input"
+                            value="y = -0.001286(x-450)^2 + 260.415"
+                        >
+                    </div>
+                </div>
+
+                <div id="splitInputsPanel" class="input-panel">
+                    <div class="input-group">
+                        <label>a (vertical stretch): <input type="text" id="inputA" value="0.001286"></label>
+                        <label>h (horizontal shift): <input type="text" id="inputH" value="450"></label>
+                        <label>k (vertical shift): <input type="text" id="inputK" value="260.415"></label>
+                    </div>
                 </div>
                 <div class="button-group">
                     <button id="shootBtn" class="btn-primary">🚀 SHOOT</button>
-                    <button id="resetBtn" class="btn-secondary">🔄 Reset Level</button>
                     <button id="nextLevelBtn" class="btn-secondary">➡️ Next Level</button>
                 </div>
                 <div id="messageBox" class="message-box"></div>

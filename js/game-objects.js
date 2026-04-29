@@ -12,7 +12,7 @@ class Bird {
         this.vx = 0;
         this.vy = 0;
         this.radius = 14;
-        this.color = '#FFD700';
+        this.color = '#d72626';
         this.active = false;
         this.trail = [];
         this.maxTrailLength = 30;
@@ -42,8 +42,9 @@ class Bird {
         this.useEquationFlight = true;
         this.vx = speed;
         this.vy = 0;
+        const graphYAtYAxis = -a * Math.pow(0 - h, 2) + k;
         this.x = this.startX;
-        this.y = this.startY;
+        this.y = this.graphConfig ? (this.graphConfig.originY - graphYAtYAxis) : this.startY;
     }
     
     update() {
@@ -92,16 +93,57 @@ class Bird {
             ctx.stroke();
         }
         
-        // Draw bird
+        // Draw bird body
         ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fill();
-        
-        // Draw eyes
+
+        // Belly highlight
+        ctx.fillStyle = '#f2d1d1';
+        ctx.beginPath();
+        ctx.arc(this.x - 2, this.y + 5, this.radius * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Tail feather
+        ctx.fillStyle = '#222';
+        ctx.beginPath();
+        ctx.moveTo(this.x - this.radius - 2, this.y - 2);
+        ctx.lineTo(this.x - this.radius - 10, this.y - 10);
+        ctx.lineTo(this.x - this.radius - 8, this.y + 2);
+        ctx.closePath();
+        ctx.fill();
+
+        // Beak
+        ctx.fillStyle = '#f7b733';
+        ctx.beginPath();
+        ctx.moveTo(this.x + this.radius - 2, this.y);
+        ctx.lineTo(this.x + this.radius + 10, this.y - 2);
+        ctx.lineTo(this.x + this.radius + 1, this.y + 4);
+        ctx.closePath();
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(this.x - 4, this.y - 4, 3, 0, Math.PI * 2);
+        ctx.arc(this.x + 3, this.y - 4, 3, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = '#000';
-        ctx.fillRect(this.x - 5, this.y - 4, 3, 3);
-        ctx.fillRect(this.x + 2, this.y - 4, 3, 3);
+        ctx.beginPath();
+        ctx.arc(this.x - 4, this.y - 4, 1.2, 0, Math.PI * 2);
+        ctx.arc(this.x + 3, this.y - 4, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Eyebrows
+        ctx.strokeStyle = '#2c0f0f';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(this.x - 8, this.y - 8);
+        ctx.lineTo(this.x - 2, this.y - 10);
+        ctx.moveTo(this.x + 1, this.y - 10);
+        ctx.lineTo(this.x + 7, this.y - 8);
+        ctx.stroke();
     }
     
     reset() {
