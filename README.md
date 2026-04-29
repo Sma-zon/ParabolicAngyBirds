@@ -11,7 +11,8 @@ A fun, interactive game that teaches parabolic equations through gameplay! Playe
   - **k**: Controls the vertical shift
 - **Physics-Based Collision**: The bird reflects off towers realistically
 - **Destructible Blocks**: Different block types (wood, stone) with varying durability
-- **2 Levels**: Simple Start and Double Tower
+- **4 Levels**: support towers, double towers, **TNT slot** (chain reaction), and a **zigzag gauntlet** of block gates
+- **Answers tab**: verified equations load **only when that tab opens**, from `data/level-answers.json` (same-origin `fetch`, validated before rendering). Not embedded in `index.html`. Use a local or hosted server (`file://` cannot load the JSON).
 
 ### 🎨 Visual Features
 - Beautiful gradient backgrounds and UI
@@ -26,7 +27,11 @@ A fun, interactive game that teaches parabolic equations through gameplay! Playe
 
 ### 📊 Level System
 1. **Simple Start** — one support tower (layout scales with canvas size).
-2. **Double Tower** — two support towers placed from canvas width so both stay visible.
+2. **Double Tower** — two support towers from canvas width.
+3. **TNT Slot** — tall stone walls with a gap; hit the **TNT** inside to clear the whole stack.
+4. **Zigzag Gauntlet** — four rows of offset stone/wood gates; clear every block.
+
+A **grass** strip under the scene is decorative only (no collision), so towers read as grounded.
 
 ## How to Play
 
@@ -37,7 +42,7 @@ A fun, interactive game that teaches parabolic equations through gameplay! Playe
    - Adjust `k` to shift the path up/down
 3. **Click "SHOOT"** to launch the bird
 4. **Destroy all blocks** to complete the level
-5. **Progress through levels** by clicking "Next Level"
+5. **Progress through levels** with **Next Level**; after the final level the same control reads **Restart** and starts level 1 again
 
 ## Installation
 
@@ -73,6 +78,8 @@ ParabolicAngyBirds/
 │   ├── levels.js             # Level definitions
 │   ├── sound-manager.js      # Audio handling
 │   └── particle-system.js    # Visual effects
+├── data/
+│   └── level-answers.json    # Answer key (loaded only when Answers tab opens)
 ├── sounds/
 │   └── README.md             # Optional bird MP3
 └── README.md

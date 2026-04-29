@@ -15,7 +15,7 @@ class Bird {
         this.color = '#d72626';
         this.active = false;
         this.trail = [];
-        this.maxTrailLength = 30;
+        this.maxTrailLength = 42;
         this.graphConfig = graphConfig;
         this.useEquationFlight = false;
         this.graphX = 0;
@@ -61,7 +61,7 @@ class Bird {
             this.vx = this.x - prevX;
             this.vy = this.y - prevY;
         } else {
-            this.vy += 0.4; // gravity
+            this.vy += 0.38;
             this.x += this.vx;
             this.y += this.vy;
         }
@@ -83,13 +83,23 @@ class Bird {
     draw(ctx) {
         // Draw trail
         if (this.trail.length > 1) {
-            ctx.strokeStyle = 'rgba(255, 215, 0, 0.3)';
-            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 2.5;
             ctx.beginPath();
             ctx.moveTo(this.trail[0].x, this.trail[0].y);
             for (let i = 1; i < this.trail.length; i++) {
                 ctx.lineTo(this.trail[i].x, this.trail[i].y);
             }
+            const g = ctx.createLinearGradient(
+                this.trail[0].x,
+                this.trail[0].y,
+                this.trail[this.trail.length - 1].x,
+                this.trail[this.trail.length - 1].y
+            );
+            g.addColorStop(0, 'rgba(255, 215, 0, 0.12)');
+            g.addColorStop(1, 'rgba(255, 140, 60, 0.45)');
+            ctx.strokeStyle = g;
             ctx.stroke();
         }
         
@@ -165,9 +175,20 @@ class Block {
         this.width = width;
         this.height = height;
         this.type = type;
-        this.health = type === 'wood' ? 2 : type === 'stone' ? 4 : 1;
-        this.maxHealth = this.health;
-        this.color = type === 'wood' ? '#8B4513' : type === 'stone' ? '#808080' : '#ff0000';
+        if (type === 'tnt') {
+            this.health = 1;
+            this.maxHealth = 1;
+            this.color = '#b91c1c';
+        } else if (type === 'grass') {
+            this.health = 999;
+            this.maxHealth = 999;
+            this.color = '#2e7d32';
+            this.noCollision = true;
+        } else {
+            this.health = type === 'wood' ? 2 : type === 'stone' ? 4 : 1;
+            this.maxHealth = this.health;
+            this.color = type === 'wood' ? '#8B4513' : type === 'stone' ? '#808080' : '#ff0000';
+        }
     }
     
     damage(amount) {
@@ -176,20 +197,36 @@ class Block {
     }
     
     draw(ctx) {
-        // Draw block
         ctx.fillStyle = this.color;
         ctx.fillRect(this.x, this.y, this.width, this.height);
-        
-        // Draw health indicator
+
+        if (this.type === 'tnt') {
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillRect(this.x + 4, this.y + this.height * 0.35, this.width - 8, 4);
+            ctx.fillStyle = '#111';
+            ctx.font = `bold ${Math.min(14, this.width / 4)}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.fillText('TNT', this.x + this.width / 2, this.y + this.height / 2 + 5);
+            ctx.textAlign = 'left';
+        }
+
+        if (this.type === 'grass') {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+            for (let gx = this.x + 4; gx < this.x + this.width; gx += 11) {
+                ctx.fillRect(gx, this.y + 4, 3, this.height - 8);
+            }
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.strokeRect(this.x, this.y, this.width, this.height);
+            return;
+        }
+
         const healthPercent = this.health / this.maxHealth;
         ctx.strokeStyle = '#ff0000';
         ctx.lineWidth = 2;
         ctx.strokeRect(this.x, this.y - 15, this.width, 3);
-        
         ctx.fillStyle = '#00ff00';
         ctx.fillRect(this.x, this.y - 15, this.width * healthPercent, 3);
-        
-        // Add texture
+
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
         ctx.lineWidth = 1;
         ctx.strokeRect(this.x, this.y, this.width, this.height);
@@ -227,6 +264,9 @@ class CollisionDetector {
     static checkBirdTowerCollision(bird, towers) {
         for (let tower of towers) {
             for (let block of tower.blocks) {
+                if (block.noCollision || block.type === 'grass') {
+                    continue;
+                }
                 if (this.checkCircleRectCollision(bird, block)) {
                     return {collided: true, block: block, tower: tower};
                 }
@@ -262,6 +302,6 @@ class CollisionDetector {
         const reflectedVy = bird.vy - 2 * dotProduct * ny;
         
         // Dampen velocity
-        return {vx: reflectedVx * 0.6, vy: reflectedVy * 0.6};
+        return { vx: reflectedVx * 0.64, vy: reflectedVy * 0.64 };
     }
 }

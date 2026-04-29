@@ -29,6 +29,47 @@ const LEVELS = [
         suggestedEquation: { a: 0.0011, h: 480, k: 155 },
         supportTowerLayout: 'double',
         towers: []
+    },
+    {
+        id: 3,
+        name: 'TNT Slot',
+        description: 'Fly through the slot and hit the TNT to blow the whole stack',
+        suggestedEquation: { a: 0.00095, h: 465, k: 168 },
+        blockTowers: [
+            {
+                x: 0,
+                y: 0,
+                blocks: [
+                    { x: 474, y: 288, w: 52, h: 52, type: 'tnt' },
+                    { x: 388, y: 235, w: 56, h: 300, type: 'stone' },
+                    { x: 556, y: 235, w: 56, h: 300, type: 'stone' }
+                ]
+            }
+        ],
+        towers: []
+    },
+    {
+        id: 4,
+        name: 'Zigzag Gauntlet',
+        description: 'Four offset gates — thread the parabola through every gap',
+        suggestedEquation: { a: 0.0014, h: 520, k: 195 },
+        blockTowers: [
+            {
+                x: 0,
+                y: 0,
+                blocks: [
+                    { x: 285, y: 195, w: 155, h: 22, type: 'stone' },
+                    { x: 575, y: 195, w: 175, h: 22, type: 'stone' },
+                    { x: 325, y: 268, w: 175, h: 22, type: 'wood' },
+                    { x: 615, y: 268, w: 155, h: 22, type: 'wood' },
+                    { x: 295, y: 341, w: 145, h: 22, type: 'stone' },
+                    { x: 555, y: 341, w: 185, h: 22, type: 'stone' },
+                    { x: 365, y: 414, w: 125, h: 24, type: 'wood' },
+                    { x: 585, y: 414, w: 125, h: 24, type: 'wood' }
+                ]
+            }
+        ],
+        towers: []
     }
 ];
 

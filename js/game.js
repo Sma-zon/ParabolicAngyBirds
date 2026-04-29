@@ -20,7 +20,11 @@ class ParabolicBirdsGame {
         });
         this.towers = [];
         this.collisionsThisFrame = new Set();
-        
+        /** @type {object[]|null} */
+        this._answerRows = null;
+        this._answersUiLoaded = false;
+        this._answersFetchPromise = null;
+
         this.setupEventListeners();
         this.loadLevel(1);
         this.gameLoop();
@@ -78,6 +82,137 @@ class ParabolicBirdsGame {
         });
         document.getElementById('fullEquationTab').addEventListener('click', () => this.switchInputMode('full'));
         document.getElementById('splitInputsTab').addEventListener('click', () => this.switchInputMode('split'));
+        document.getElementById('answersTab').addEventListener('click', () => this.switchInputMode('answers'));
+
+        document.getElementById('answersPanel').addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-copy-answer');
+            if (!btn) return;
+            const enc = btn.getAttribute('data-equation');
+            if (!enc) return;
+            let eq;
+            try {
+                eq = decodeURIComponent(enc);
+            } catch {
+                return;
+            }
+            if (!this.isSafeAnswerEquation(eq) || !this.parseEquation(eq.trim())) {
+                this.showMessage('Invalid answer data.', 'error');
+                return;
+            }
+            document.getElementById('equationInput').value = eq;
+            this.syncFromFullEquationString(eq);
+            this.switchInputMode('full');
+            this.showMessage('Equation pasted — Full Equation tab', 'success');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(eq).catch(() => {});
+            }
+        });
+    }
+
+    escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    /** Blocks obvious injection in equation strings from tampered JSON. */
+    isSafeAnswerEquation(eq) {
+        const t = eq.trim();
+        if (t.length < 12 || t.length > 220) return false;
+        if (/[<>]|script|javascript:|data:text\/|on\w+\s*=/i.test(t)) return false;
+        if (!/^y\s*=\s*-/i.test(t)) return false;
+        if (!/\^2|²/.test(t)) return false;
+        return true;
+    }
+
+    validateAnswerRows(rows) {
+        if (!Array.isArray(rows) || rows.length === 0) return false;
+        const maxLevel = LEVELS.length;
+        for (const r of rows) {
+            if (!r || typeof r !== 'object') return false;
+            if (typeof r.level !== 'number' || r.level < 1 || r.level > maxLevel) return false;
+            if (typeof r.shot !== 'number' || r.shot < 1 || r.shot > 40) return false;
+            if (typeof r.note !== 'string' || r.note.length > 220) return false;
+            if (typeof r.equation !== 'string') return false;
+            if (!this.isSafeAnswerEquation(r.equation)) return false;
+            if (!this.parseEquation(r.equation.trim())) return false;
+        }
+        return true;
+    }
+
+    syncFromFullEquationString(equationText) {
+        const parsed = this.parseEquation(equationText.trim());
+        if (parsed) {
+            this.syncParameterInputs(parsed.a, parsed.h, parsed.k);
+        }
+    }
+
+    ensureAnswersLoaded() {
+        if (this._answersUiLoaded) return;
+        const body = document.getElementById('answersPanelBody');
+        if (!body) return;
+        if (this._answersFetchPromise) return;
+
+        body.textContent = '';
+        const loading = document.createElement('p');
+        loading.className = 'answers-loading';
+        loading.textContent = 'Loading…';
+        body.appendChild(loading);
+
+        this._answersFetchPromise = fetch('data/level-answers.json', {
+            credentials: 'same-origin',
+            cache: 'no-store'
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error('status');
+                return res.json();
+            })
+            .then((data) => {
+                if (!this.validateAnswerRows(data)) throw new Error('invalid');
+                this._answerRows = data;
+                this.renderAnswersFromRows(data);
+                this._answersUiLoaded = true;
+            })
+            .catch(() => {
+                body.textContent = '';
+                const err = document.createElement('p');
+                err.className = 'answers-error';
+                err.textContent =
+                    'Could not load answers. Serve the folder over http (e.g. python -m http.server) or use GitHub Pages — opening index.html as file:// cannot load data/level-answers.json.';
+                body.appendChild(err);
+            })
+            .finally(() => {
+                this._answersFetchPromise = null;
+            });
+    }
+
+    renderAnswersFromRows(rows) {
+        const body = document.getElementById('answersPanelBody');
+        if (!body) return;
+        const byLevel = {};
+        for (const row of rows) {
+            if (!byLevel[row.level]) {
+                byLevel[row.level] = [];
+            }
+            byLevel[row.level].push(row);
+        }
+        let html = '';
+        for (let lid = 1; lid <= LEVELS.length; lid++) {
+            const lv = getLevelById(lid);
+            if (!lv) continue;
+            html += `<section class="answer-level"><h3 class="answer-level-title">Level ${lid} — ${this.escapeHtml(lv.name)}</h3>`;
+            for (const row of byLevel[lid] || []) {
+                const eq = row.equation.trim();
+                const enc = encodeURIComponent(eq);
+                html += `<div class="answer-row">
+<div class="answer-meta"><span class="answer-shot">Shot ${row.shot}</span><p class="answer-note">${this.escapeHtml(row.note)}</p></div>
+<code class="answer-eq">${this.escapeHtml(eq)}</code>
+<button type="button" class="btn-copy-answer" data-equation="${enc}">Copy to equation</button>
+</div>`;
+            }
+            html += '</section>';
+        }
+        body.innerHTML = html;
     }
     
     loadLevel(levelId) {
@@ -86,8 +221,9 @@ class ParabolicBirdsGame {
         
         this.currentLevel = levelId;
         this.bird.reset();
-        const placements = this.resolveSupportPlacements(level);
-        this.towers = placements.map((p) => this.createSupportTowerAt(p.baseX, p.topY));
+        const gameplayTowers = this.buildTowersFromLevel(level);
+        const groundTower = this.buildGroundTower();
+        this.towers = groundTower ? [groundTower, ...gameplayTowers] : gameplayTowers;
         this.gameState = 'playing';
         particleSystem.clear();
         this.updateUI();
@@ -122,10 +258,69 @@ class ParabolicBirdsGame {
         tower.fallAnim = null;
         return tower;
     }
-    
+
+    /** Decorative grass under towers (no collision, ignored for level clear). */
+    buildGroundTower() {
+        const gy = this.graphOriginY;
+        const surfaceLift = 90;
+        const topY = gy - surfaceLift;
+        const h = Math.max(this.canvas.height - topY, surfaceLift);
+        const tileW = 44;
+        const blocks = [];
+        for (let x = 0; x < this.canvas.width; x += tileW) {
+            const tw = Math.min(tileW, this.canvas.width - x);
+            const shade = (Math.floor(x / tileW) % 2 === 0) ? '#2e7d32' : '#27642a';
+            const b = new Block(x, topY, tw, h, 'grass');
+            b.color = shade;
+            blocks.push(b);
+        }
+        const tower = new Tower(0, topY, blocks);
+        tower.isDecorativeGround = true;
+        return tower;
+    }
+
+    buildTowersFromLevel(level) {
+        if (level.blockTowers && level.blockTowers.length > 0) {
+            return level.blockTowers.map((def) => {
+                const blocks = def.blocks.map(
+                    (b) => new Block(b.x, b.y, b.w, b.h, b.type || 'wood')
+                );
+                return new Tower(def.x || 0, def.y || 0, blocks);
+            });
+        }
+        const placements = this.resolveSupportPlacements(level);
+        return placements.map((p) => this.createSupportTowerAt(p.baseX, p.topY));
+    }
+
+    triggerTntExplosion(tower) {
+        const blocks = [...tower.blocks];
+        blocks.forEach((b) => {
+            particleSystem.createExplosion(
+                b.x + b.width / 2,
+                b.y + b.height / 2,
+                Math.random() > 0.4 ? '#ff9500' : '#ffcc00',
+                16
+            );
+            b.health = 0;
+        });
+        particleSystem.createExplosion(
+            tower.blocks[0] ? tower.blocks[0].x + 50 : 500,
+            tower.blocks[0] ? tower.blocks[0].y + 100 : 300,
+            '#ffffff',
+            10
+        );
+        this.score += Math.min(120, 18 * blocks.length);
+        this.showMessage('TNT chain reaction!', 'success');
+        tower.removeDeadBlocks();
+    }
+
     shoot() {
         if (this.gameState !== 'playing' || this.bird.active) {
             this.showMessage('Wait for current shot to finish!', 'error');
+            return;
+        }
+        if (this.currentInputMode === 'answers') {
+            this.showMessage('Switch to Full Equation or a / h / k to shoot.', 'error');
             return;
         }
 
@@ -243,22 +438,32 @@ class ParabolicBirdsGame {
                 const block = collision.block;
                 const tower = collision.tower;
 
-                const collisionKey = `${block}-${tower}`;
-                if (!this.collisionsThisFrame.has(collisionKey)) {
-                    const damageAmount = block.instantBreak ? block.health : 1;
-                    if (block.damage(damageAmount)) {
-                        particleSystem.createExplosion(block.x + block.width / 2, block.y + block.height / 2, '#ff6b6b');
-                        this.score += 10;
+                if (block.type === 'tnt') {
+                    const tntKey = `tnt-${tower}`;
+                    if (!this.collisionsThisFrame.has(tntKey)) {
+                        this.triggerTntExplosion(tower);
+                        this.bird.reset();
+                        this.updateUI();
+                        this.collisionsThisFrame.add(tntKey);
                     }
+                } else {
+                    const collisionKey = `${block}-${tower}`;
+                    if (!this.collisionsThisFrame.has(collisionKey)) {
+                        const damageAmount = block.instantBreak ? block.health : 1;
+                        if (block.damage(damageAmount)) {
+                            particleSystem.createExplosion(block.x + block.width / 2, block.y + block.height / 2, '#ff6b6b');
+                            this.score += 10;
+                        }
 
-                    const response = CollisionDetector.getCollisionResponse(this.bird, block);
-                    this.bird.useEquationFlight = false;
-                    this.bird.vx = response.vx;
-                    this.bird.vy = response.vy;
-                    this.bird.reset();
-                    this.updateUI();
+                        const response = CollisionDetector.getCollisionResponse(this.bird, block);
+                        this.bird.useEquationFlight = false;
+                        this.bird.vx = response.vx;
+                        this.bird.vy = response.vy;
+                        this.bird.reset();
+                        this.updateUI();
 
-                    this.collisionsThisFrame.add(collisionKey);
+                        this.collisionsThisFrame.add(collisionKey);
+                    }
                 }
             }
         }
@@ -266,7 +471,8 @@ class ParabolicBirdsGame {
         this.towers.forEach(tower => tower.removeDeadBlocks());
         this.updateTowerFallAnimation();
 
-        if (this.towers.every(tower => tower.isDestroyed())) {
+        const gameplayTowers = this.towers.filter((t) => !t.isDecorativeGround);
+        if (gameplayTowers.length && gameplayTowers.every((tower) => tower.isDestroyed())) {
             this.completeLevel();
         }
 
@@ -570,20 +776,14 @@ class ParabolicBirdsGame {
     
     nextLevel() {
         soundManager.ensureContext();
-        if (this.gameState === 'gameComplete') {
-            this.loadLevel(1);
-            this.showMessage('Level 1 — go!', 'info');
-            return;
-        }
         if (this.gameState !== 'levelComplete') {
             return;
         }
         if (this.currentLevel < LEVELS.length) {
             this.loadLevel(this.currentLevel + 1);
         } else {
-            this.showMessage('You cleared every level! Press Next to restart from level 1.', 'success');
-            this.gameState = 'gameComplete';
-            this.updateUI();
+            this.loadLevel(1);
+            this.showMessage('Level 1 — go!', 'info');
         }
     }
     
@@ -593,29 +793,44 @@ class ParabolicBirdsGame {
         document.getElementById('attemptsDisplay').textContent = `Shots: Unlimited`;
         
         // Enable/disable buttons
-        document.getElementById('shootBtn').disabled = this.bird.active || this.gameState !== 'playing';
-        document.getElementById('nextLevelBtn').disabled =
-            !(this.gameState === 'levelComplete' || this.gameState === 'gameComplete');
+        document.getElementById('shootBtn').disabled =
+            this.bird.active ||
+            this.gameState !== 'playing' ||
+            this.currentInputMode === 'answers';
+        document.getElementById('nextLevelBtn').disabled = this.gameState !== 'levelComplete';
+
+        const nextBtn = document.getElementById('nextLevelBtn');
+        if (this.gameState === 'levelComplete' && this.currentLevel === LEVELS.length) {
+            nextBtn.textContent = '🔄 Restart';
+        } else {
+            nextBtn.textContent = '➡️ Next Level';
+        }
     }
 
     switchInputMode(mode) {
         const fullTab = document.getElementById('fullEquationTab');
         const splitTab = document.getElementById('splitInputsTab');
+        const answersTab = document.getElementById('answersTab');
         const fullPanel = document.getElementById('fullEquationPanel');
         const splitPanel = document.getElementById('splitInputsPanel');
+        const answersPanel = document.getElementById('answersPanel');
+
+        [fullTab, splitTab, answersTab].forEach((t) => t.classList.remove('active'));
+        [fullPanel, splitPanel, answersPanel].forEach((p) => p.classList.remove('active'));
 
         if (mode === 'full') {
             this.currentInputMode = 'full';
             fullTab.classList.add('active');
-            splitTab.classList.remove('active');
             fullPanel.classList.add('active');
-            splitPanel.classList.remove('active');
-        } else {
+        } else if (mode === 'split') {
             this.currentInputMode = 'split';
             splitTab.classList.add('active');
-            fullTab.classList.remove('active');
             splitPanel.classList.add('active');
-            fullPanel.classList.remove('active');
+        } else if (mode === 'answers') {
+            this.currentInputMode = 'answers';
+            answersTab.classList.add('active');
+            answersPanel.classList.add('active');
+            this.ensureAnswersLoaded();
         }
     }
     

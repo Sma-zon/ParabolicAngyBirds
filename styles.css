@@ -125,6 +125,11 @@ main {
     margin-bottom: 12px;
 }
 
+.input-mode-tabs--three .mode-tab {
+    font-size: 0.78rem;
+    padding: 8px 6px;
+}
+
 .mode-tab {
     flex: 1;
     border: 2px solid #d9c7a4;
@@ -152,6 +157,119 @@ main {
 
 .input-panel.active {
     display: block;
+}
+
+.answers-intro,
+.answers-footnote {
+    font-size: 0.9em;
+    line-height: 1.45;
+    margin-bottom: 12px;
+    color: #444;
+}
+
+.answers-steps {
+    margin: 0 0 14px 18px;
+    padding: 0;
+    font-size: 0.9em;
+    line-height: 1.55;
+    color: #333;
+}
+
+.answers-steps li {
+    margin-bottom: 6px;
+}
+
+.answers-loading {
+    font-style: italic;
+    color: #666;
+}
+
+.answers-error {
+    color: #a32020;
+    font-size: 0.92em;
+    line-height: 1.45;
+}
+
+.answers-footnote {
+    font-size: 0.85em;
+    padding: 8px 10px;
+    background: rgba(78, 205, 196, 0.12);
+    border-radius: 6px;
+    border-left: 4px solid var(--secondary-color);
+}
+
+.answers-body {
+    max-height: 42vh;
+    overflow-y: auto;
+    margin-top: 8px;
+}
+
+.answer-level {
+    margin-bottom: 18px;
+}
+
+.answer-level-title {
+    font-size: 1.05em;
+    color: var(--primary-color);
+    margin-bottom: 8px;
+}
+
+.answer-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.answer-row:last-child {
+    border-bottom: none;
+}
+
+.answer-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.answer-shot {
+    font-weight: 700;
+    color: #6a4e26;
+    font-size: 0.9em;
+}
+
+.answer-note {
+    font-size: 0.88em;
+    margin: 0;
+    color: #555;
+}
+
+.answer-eq {
+    display: block;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82em;
+    background: #fffaf0;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid #e8dcc4;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.btn-copy-answer {
+    align-self: flex-start;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    background: var(--secondary-color);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.88em;
+}
+
+.btn-copy-answer:hover {
+    filter: brightness(1.06);
 }
 
 .input-group label {
@@ -265,6 +383,18 @@ footer {
     border-top: 1px solid var(--border-color);
     color: #666;
     font-size: 0.9em;
+}
+
+.footer-main {
+    margin: 0 0 10px;
+    line-height: 1.5;
+}
+
+.footer-gift {
+    margin: 0;
+    font-size: 0.88em;
+    color: #888;
+    font-style: italic;
 }
 
 /* Responsive Design */

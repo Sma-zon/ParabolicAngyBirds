@@ -1,0 +1,14 @@
+[
+  {"level": 1, "shot": 1, "note": "Topple the tower (hits left leg first)", "equation": "y = -0.00026(x-1160.1036581385713)^2 + 240.7013968553183"},
+  {"level": 2, "shot": 1, "note": "First tower — left leg", "equation": "y = -0.00026(x-1203.409102726789)^2 + 270.79306307517777"},
+  {"level": 2, "shot": 2, "note": "Second tower — left leg (after the first falls)", "equation": "y = -0.00026(x-1175.6730934251443)^2 + 247.67982582982756"},
+  {"level": 3, "shot": 1, "note": "Through the slot into TNT (TNT is checked first on impact)", "equation": "y = -0.0131596(x-232.6881611643414)^2 + 586.4815694083247"},
+  {"level": 4, "shot": 1, "note": "Row 1 — left stone (repeat 4× same shot to break stone)", "equation": "y = -0.04796(x-120.99833981015581)^2 + 560.3790209687311"},
+  {"level": 4, "shot": 2, "note": "Row 1 — right stone (×4)", "equation": "y = -0.0002(x-757.7562986736743)^2 + 339.106292970522"},
+  {"level": 4, "shot": 3, "note": "Row 2 — left wood (×2)", "equation": "y = -0.0167(x-162.19105290957486)^2 + 329.03965436070075"},
+  {"level": 4, "shot": 4, "note": "Row 2 — right wood (×2)", "equation": "y = -0.00182(x-341.2691470134679)^2 + 306.26305809217814"},
+  {"level": 4, "shot": 5, "note": "Row 3 — left stone (×4)", "equation": "y = -0.05084(x-118.97031517449977)^2 + 574.1037402590616"},
+  {"level": 4, "shot": 6, "note": "Row 3 — right stone (×4)", "equation": "y = -0.00242(x-302.00685503467776)^2 + 233.5776393210732"},
+  {"level": 4, "shot": 7, "note": "Row 4 — left wood (×2)", "equation": "y = -0.00032(x-1033.3907083705044)^2 + 231.41326125494288"},
+  {"level": 4, "shot": 8, "note": "Row 4 — right wood (×2)", "equation": "y = -0.00242(x-337.5813232949474)^2 + 162.79669247533852"}
+]

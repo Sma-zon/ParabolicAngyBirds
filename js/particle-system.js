@@ -39,17 +39,14 @@ class ParticleSystem {
         this.particles = [];
     }
     
-    createExplosion(x, y, color = '#ff6b6b', count = 12) {
+    createExplosion(x, y, color = '#ff6b6b', count = 14) {
         for (let i = 0; i < count; i++) {
             const angle = (Math.PI * 2 * i) / count;
-            const speed = 3 + Math.random() * 3;
+            const speed = 2.8 + Math.random() * 2.8;
             const vx = Math.cos(angle) * speed;
             const vy = Math.sin(angle) * speed;
-            
-            this.particles.push(new Particle(
-                x, y, vx, vy, 40,
-                color
-            ));
+
+            this.particles.push(new Particle(x, y, vx, vy, 48, color));
         }
     }
     

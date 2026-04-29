@@ -23,9 +23,10 @@
             <div class="control-panel">
                 <h2>Enter Parabolic Equation</h2>
                 <p class="equation-format">Format: y = -a(x-h)^2 + k</p>
-                <div class="input-mode-tabs">
-                    <button id="fullEquationTab" class="mode-tab active">Full Equation</button>
-                    <button id="splitInputsTab" class="mode-tab">a / h / k Inputs</button>
+                <div class="input-mode-tabs input-mode-tabs--three">
+                    <button type="button" id="fullEquationTab" class="mode-tab active">Full Equation</button>
+                    <button type="button" id="splitInputsTab" class="mode-tab">a / h / k</button>
+                    <button type="button" id="answersTab" class="mode-tab">Answers</button>
                 </div>
 
                 <div id="fullEquationPanel" class="input-panel active">
@@ -47,6 +48,20 @@
                         <label>k (vertical shift): <input type="text" id="inputK" value="150"></label>
                     </div>
                 </div>
+
+                <div id="answersPanel" class="input-panel">
+                    <p class="answers-intro">
+                        <strong>For the teacher:</strong> solution equations load <em>only</em> when this tab is opened (from <code>data/level-answers.json</code> on the same site). They are not bundled in the main page.
+                    </p>
+                    <ol class="answers-steps">
+                        <li>Try the level with your own <strong>Full Equation</strong> or <strong>a / h / k</strong> first.</li>
+                        <li>Open <strong>Answers</strong> when you want a verified trajectory for this build.</li>
+                        <li>Tap <strong>Copy to equation</strong> — it fills the full equation field and switches you back to shoot.</li>
+                        <li>Level 4: stone needs <strong>4</strong> identical hits, wood <strong>2</strong> — repeat the copied shot per block as noted.</li>
+                    </ol>
+                    <p class="answers-footnote">Serve over <code>http://localhost</code> or GitHub Pages so answers can load (browsers block <code>file://</code> fetches).</p>
+                    <div id="answersPanelBody" class="answers-body"></div>
+                </div>
                 <div class="button-group">
                     <button id="shootBtn" class="btn-primary">🚀 SHOOT</button>
                     <button id="nextLevelBtn" class="btn-secondary">➡️ Next Level</button>
@@ -56,7 +71,8 @@
         </main>
         
         <footer>
-            <p>Master physics and algebra while having fun! Enter the correct parabolic equation to guide your bird.</p>
+            <p class="footer-main">Master vertex-form parabolas: adjust <strong>a</strong>, <strong>h</strong>, and <strong>k</strong>, launch the bird, and learn from each arc.</p>
+            <p class="footer-gift">With appreciation for math teachers everywhere — enjoy the lesson.</p>
         </footer>
     </div>
 
