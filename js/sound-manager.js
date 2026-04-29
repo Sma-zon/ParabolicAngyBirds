@@ -149,6 +149,15 @@ class SoundManager {
             await this._waitCanPlay(bgm);
             try {
                 await bgm.play();
+                // Ignore tiny/placeholder clips (e.g. 5s silence); keep Web Audio pad until a real ~minute+ theme loads.
+                const dur = bgm.duration;
+                if (!Number.isFinite(dur) || dur < 12) {
+                    try {
+                        bgm.pause();
+                        bgm.currentTime = 0;
+                    } catch (_) {}
+                    continue;
+                }
                 this._htmlBgmPlaying = true;
                 this._stopProceduralAmbient();
                 return true;
