@@ -11,7 +11,7 @@ A fun, interactive game that teaches parabolic equations through gameplay! Playe
   - **k**: Controls the vertical shift
 - **Physics-Based Collision**: The bird reflects off towers realistically
 - **Destructible Blocks**: Different block types (wood, stone) with varying durability
-- **5 Progressive Levels**: From simple to expert difficulty
+- **2 Levels**: Simple Start and Double Tower
 
 ### 🎨 Visual Features
 - Beautiful gradient backgrounds and UI
@@ -21,17 +21,12 @@ A fun, interactive game that teaches parabolic equations through gameplay! Playe
 - Health indicators on blocks
 - Smooth animations and transitions
 
-### 🔊 Audio System
-- **Optional MP3s** in `sounds/` (see `sounds/README.md` for exact filenames); if a file is missing or `play()` fails, **Web Audio** procedural fallback runs for that cue
-- Random bird chirps while flying, pig oink/yelp on tower fall, tower impact on hits, short win fanfare
-- Volume and mute apply to both MP3 elements and the synth bus (`js/sound-manager.js`)
+### 🔊 Audio
+- **`sounds/bird-chirp.mp3`** plays while the bird is flying (see `sounds/README.md`). Volume/mute are handled in `js/sound-manager.js`.
 
 ### 📊 Level System
-1. **Simple Start** - Learn the basics with an easy target
-2. **Double Tower** - Manage two separate towers
-3. **Precision Shot** - Navigate through narrow openings
-4. **Triple Tower Challenge** - Destroy three towers with limited attempts
-5. **Expert Mode** - The ultimate pyramid challenge
+1. **Simple Start** — one support tower (layout scales with canvas size).
+2. **Double Tower** — two support towers placed from canvas width so both stay visible.
 
 ## How to Play
 
@@ -79,13 +74,13 @@ ParabolicAngyBirds/
 │   ├── sound-manager.js      # Audio handling
 │   └── particle-system.js    # Visual effects
 ├── sounds/
-│   └── README.md             # Notes (no audio assets required)
+│   └── README.md             # Optional bird MP3
 └── README.md
 ```
 
-## Sound Effects
+## Sound
 
-All sounds are synthesized in `js/sound-manager.js`. See `sounds/README.md` for details.
+Bird flight uses `sounds/bird-chirp.mp3` when present. See `sounds/README.md`.
 
 ## Mathematical Concepts
 
