@@ -184,7 +184,11 @@ class ParabolicBirdsGame {
         if (this.gameState !== 'playing') return;
         
         if (this.bird.active) {
+            const wasActive = this.bird.active;
             this.bird.update();
+            if (wasActive && !this.bird.active) {
+                this.updateUI();
+            }
             
             // Check collisions
             const collision = CollisionDetector.checkBirdTowerCollision(this.bird, this.towers);
@@ -212,6 +216,7 @@ class ParabolicBirdsGame {
                     this.bird.vy = response.vy;
                     // Auto-reset after hitting any tower block, with no life limits.
                     this.bird.reset();
+                    this.updateUI();
                     
                     this.collisionsThisFrame.add(collisionKey);
                 }
@@ -287,6 +292,7 @@ class ParabolicBirdsGame {
         
         // Draw towers
         this.towers.forEach(tower => tower.draw(this.ctx));
+        this.drawGoofyPigOnTower();
         
         // Draw bird
         this.bird.draw(this.ctx);
@@ -343,6 +349,59 @@ class ParabolicBirdsGame {
         this.ctx.fill();
         this.ctx.font = '12px Arial';
         this.ctx.fillText('(0,0)', this.graphOriginX + 8, this.graphOriginY - 8);
+    }
+
+    drawGoofyPigOnTower() {
+        const tower = this.towers[0];
+        if (!tower || !tower.isSupportTower || !tower.topBeam || !tower.blocks.includes(tower.topBeam)) {
+            return;
+        }
+
+        const pigX = tower.topBeam.x + tower.topBeam.width / 2;
+        const pigY = tower.topBeam.y - 18;
+
+        // Body
+        this.ctx.fillStyle = '#7ed957';
+        this.ctx.beginPath();
+        this.ctx.arc(pigX, pigY, 14, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#4a8f36';
+        this.ctx.lineWidth = 2;
+        this.ctx.stroke();
+
+        // Ears
+        this.ctx.fillStyle = '#7ed957';
+        this.ctx.beginPath();
+        this.ctx.arc(pigX - 7, pigY - 12, 4, 0, Math.PI * 2);
+        this.ctx.arc(pigX + 7, pigY - 12, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Eyes (goofy offset)
+        this.ctx.fillStyle = '#fff';
+        this.ctx.beginPath();
+        this.ctx.arc(pigX - 4, pigY - 3, 3, 0, Math.PI * 2);
+        this.ctx.arc(pigX + 5, pigY - 5, 3, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#111';
+        this.ctx.beginPath();
+        this.ctx.arc(pigX - 4, pigY - 3, 1.2, 0, Math.PI * 2);
+        this.ctx.arc(pigX + 5, pigY - 5, 1.2, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Snout
+        this.ctx.fillStyle = '#6ecf4c';
+        this.ctx.beginPath();
+        this.ctx.ellipse(pigX + 1, pigY + 5, 6, 4, 0.2, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.fillStyle = '#1a1a1a';
+        this.ctx.fillRect(pigX - 1, pigY + 4, 1.5, 1.5);
+        this.ctx.fillRect(pigX + 2, pigY + 5, 1.5, 1.5);
+
+        // Tongue
+        this.ctx.fillStyle = '#ff7fa0';
+        this.ctx.beginPath();
+        this.ctx.ellipse(pigX + 3, pigY + 11, 2.5, 1.5, 0, 0, Math.PI * 2);
+        this.ctx.fill();
     }
 
     completeLevel() {
