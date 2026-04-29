@@ -36,6 +36,8 @@
                             type="text"
                             id="equationInput"
                             class="equation-input"
+                            autocomplete="off"
+                            spellcheck="false"
                             value="y = -0.0012(x-430)^2 + 150"
                         >
                     </div>
@@ -43,9 +45,9 @@
 
                 <div id="splitInputsPanel" class="input-panel">
                     <div class="input-group">
-                        <label>a (vertical stretch): <input type="text" id="inputA" value="0.0012"></label>
-                        <label>h (horizontal shift): <input type="text" id="inputH" value="430"></label>
-                        <label>k (vertical shift): <input type="text" id="inputK" value="150"></label>
+                        <label>a (vertical stretch): <input type="text" id="inputA" value="0.0012" autocomplete="off" spellcheck="false"></label>
+                        <label>h (horizontal shift): <input type="text" id="inputH" value="430" autocomplete="off" spellcheck="false"></label>
+                        <label>k (vertical shift): <input type="text" id="inputK" value="150" autocomplete="off" spellcheck="false"></label>
                     </div>
                 </div>
 
@@ -63,8 +65,8 @@
                     <div id="answersPanelBody" class="answers-body"></div>
                 </div>
                 <div class="button-group">
-                    <button id="shootBtn" class="btn-primary">🚀 SHOOT</button>
-                    <button id="nextLevelBtn" class="btn-secondary">➡️ Next Level</button>
+                    <button type="button" id="shootBtn" class="btn-primary">🚀 SHOOT</button>
+                    <button type="button" id="nextLevelBtn" class="btn-secondary">➡️ Next Level</button>
                 </div>
                 <div id="messageBox" class="message-box"></div>
             </div>
@@ -77,6 +79,9 @@
     </div>
 
     <div class="sfx-mp3" aria-hidden="true">
+        <audio id="bgmTheme" preload="auto" loop>
+            <source src="sounds/02.%20Angry%20Birds%20Theme.mp3" type="audio/mpeg" />
+        </audio>
         <audio id="sfxBirdChirp" preload="auto"><source src="sounds/bird-chirp.mp3" type="audio/mpeg"></audio>
     </div>
     

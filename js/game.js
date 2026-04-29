@@ -84,29 +84,35 @@ class ParabolicBirdsGame {
         document.getElementById('splitInputsTab').addEventListener('click', () => this.switchInputMode('split'));
         document.getElementById('answersTab').addEventListener('click', () => this.switchInputMode('answers'));
 
-        document.getElementById('answersPanel').addEventListener('click', (e) => {
-            const btn = e.target.closest('.btn-copy-answer');
-            if (!btn) return;
-            const enc = btn.getAttribute('data-equation');
-            if (!enc) return;
-            let eq;
-            try {
-                eq = decodeURIComponent(enc);
-            } catch {
-                return;
-            }
-            if (!this.isSafeAnswerEquation(eq) || !this.parseEquation(eq.trim())) {
-                this.showMessage('Invalid answer data.', 'error');
-                return;
-            }
-            document.getElementById('equationInput').value = eq;
-            this.syncFromFullEquationString(eq);
-            this.switchInputMode('full');
-            this.showMessage('Equation pasted — Full Equation tab', 'success');
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(eq).catch(() => {});
-            }
-        });
+        // Only buttons inside the lazy-rendered body can copy — avoids any stray
+        // hit targets and makes it explicit that copying requires a deliberate click
+        // on a rendered answer row (not merely opening the Answers tab).
+        const answersBody = document.getElementById('answersPanelBody');
+        if (answersBody) {
+            answersBody.addEventListener('click', (e) => {
+                const btn = e.target.closest('.btn-copy-answer');
+                if (!btn) return;
+                const enc = btn.getAttribute('data-equation');
+                if (!enc) return;
+                let eq;
+                try {
+                    eq = decodeURIComponent(enc);
+                } catch {
+                    return;
+                }
+                if (!this.isSafeAnswerEquation(eq) || !this.parseEquation(eq.trim())) {
+                    this.showMessage('Invalid answer data.', 'error');
+                    return;
+                }
+                document.getElementById('equationInput').value = eq;
+                this.syncFromFullEquationString(eq);
+                this.switchInputMode('full');
+                this.showMessage('Equation pasted — Full Equation tab', 'success');
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(eq).catch(() => {});
+                }
+            });
+        }
     }
 
     escapeHtml(text) {
@@ -285,7 +291,15 @@ class ParabolicBirdsGame {
                 const blocks = def.blocks.map(
                     (b) => new Block(b.x, b.y, b.w, b.h, b.type || 'wood')
                 );
-                return new Tower(def.x || 0, def.y || 0, blocks);
+                const tower = new Tower(def.x || 0, def.y || 0, blocks);
+                if (def.pig && typeof def.pig.x === 'number' && typeof def.pig.y === 'number') {
+                    tower.pigDecoration = {
+                        x: def.pig.x,
+                        y: def.pig.y,
+                        flip: !!def.pig.flip
+                    };
+                }
+                return tower;
             });
         }
         const placements = this.resolveSupportPlacements(level);
@@ -700,6 +714,15 @@ class ParabolicBirdsGame {
 
     drawGoofyPigsOnTowers() {
         this.towers.forEach((tower, index) => {
+            if (tower.pigDecoration) {
+                this.drawGoofyPigAt(
+                    tower.pigDecoration.x,
+                    tower.pigDecoration.y,
+                    0,
+                    tower.pigDecoration.flip
+                );
+                return;
+            }
             if (!tower.isSupportTower || !tower.topBeam || !tower.blocks.includes(tower.topBeam)) {
                 return;
             }

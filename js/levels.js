@@ -33,17 +33,21 @@ const LEVELS = [
     {
         id: 3,
         name: 'TNT Slot',
-        description: 'Fly through the slot and hit the TNT to blow the whole stack',
-        suggestedEquation: { a: 0.00095, h: 465, k: 168 },
+        description: 'Thread the window, knock the pig, and detonate the TNT at the base',
+        suggestedEquation: { a: 0.0011, h: 420, k: 220 },
         blockTowers: [
             {
                 x: 0,
                 y: 0,
+                // TNT must stay first in this array so collision checks hit it before side stone.
                 blocks: [
-                    { x: 474, y: 288, w: 52, h: 52, type: 'tnt' },
-                    { x: 388, y: 235, w: 56, h: 300, type: 'stone' },
-                    { x: 556, y: 235, w: 56, h: 300, type: 'stone' }
-                ]
+                    { x: 474, y: 458, w: 52, h: 52, type: 'tnt' },
+                    { x: 365, y: 318, w: 44, h: 212, type: 'stone' },
+                    { x: 591, y: 318, w: 44, h: 212, type: 'stone' },
+                    { x: 365, y: 222, w: 95, h: 26, type: 'stone' },
+                    { x: 540, y: 222, w: 95, h: 26, type: 'stone' }
+                ],
+                pig: { x: 413, y: 206, flip: false }
             }
         ],
         towers: []
