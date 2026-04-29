@@ -29,6 +29,9 @@ class ParabolicBirdsGame {
     setupEventListeners() {
         document.getElementById('shootBtn').addEventListener('click', () => this.shoot());
         document.getElementById('nextLevelBtn').addEventListener('click', () => this.nextLevel());
+        document.getElementById('nextLevelBtn').addEventListener('pointerdown', () => {
+            soundManager.ensureContext(true);
+        });
         document.getElementById('fullEquationTab').addEventListener('click', () => this.switchInputMode('full'));
         document.getElementById('splitInputsTab').addEventListener('click', () => this.switchInputMode('split'));
     }
@@ -39,17 +42,20 @@ class ParabolicBirdsGame {
         
         this.currentLevel = levelId;
         this.bird.reset();
-        this.towers = [this.createSturdyTower()];
+        const placements = level.supportTowerPlacements;
+        this.towers = placements && placements.length
+            ? placements.map(p => this.createSupportTowerAt(p.baseX, p.topY))
+            : [this.createSupportTowerAt(610, 350)];
         this.gameState = 'playing';
         particleSystem.clear();
         this.updateUI();
         this.showMessage(`Level ${levelId}: ${level.name}`, 'info');
     }
 
-    createSturdyTower() {
-        const leftLeg = new Block(620, 390, 24, 90, 'wood');
-        const rightLeg = new Block(686, 390, 24, 90, 'wood');
-        const topBeam = new Block(610, 350, 110, 30, 'stone');
+    createSupportTowerAt(baseX, topY) {
+        const topBeam = new Block(baseX, topY, 110, 30, 'stone');
+        const leftLeg = new Block(baseX + 10, topY + 40, 24, 90, 'wood');
+        const rightLeg = new Block(baseX + 76, topY + 40, 24, 90, 'wood');
 
         leftLeg.health = 1;
         leftLeg.maxHealth = 1;
@@ -66,7 +72,7 @@ class ParabolicBirdsGame {
         topBeam.instantBreak = true;
         topBeam.part = 'topBeam';
 
-        const tower = new Tower(610, 350, [leftLeg, rightLeg, topBeam]);
+        const tower = new Tower(baseX, topY, [leftLeg, rightLeg, topBeam]);
         tower.isSupportTower = true;
         tower.leftLeg = leftLeg;
         tower.rightLeg = rightLeg;
@@ -113,7 +119,7 @@ class ParabolicBirdsGame {
         // Use player equation exactly as entered (no auto-correction).
         this.bird.launchWithEquation(a, h, k, 3);
         this.shotsFired++;
-        soundManager.ensureContext();
+        soundManager.ensureContext(true);
         this.updateUI();
         
         // Display the equation being tested
@@ -374,7 +380,7 @@ class ParabolicBirdsGame {
         
         this.towers.forEach(tower => tower.draw(this.ctx));
         this.towers.forEach(tower => this.drawTowerFallLayer(tower));
-        this.drawGoofyPigOnTower();
+        this.drawGoofyPigsOnTowers();
         
         // Draw bird
         this.bird.draw(this.ctx);
@@ -448,24 +454,27 @@ class ParabolicBirdsGame {
         ctx.strokeRect(-fa.w / 2, -fa.h / 2, fa.w, fa.h);
         ctx.restore();
 
-        this.drawGoofyPigAt(fa.pigX, fa.pigY, fa.pigAngle);
+        this.drawGoofyPigAt(fa.pigX, fa.pigY, fa.pigAngle, false);
     }
 
-    drawGoofyPigOnTower() {
-        const tower = this.towers[0];
-        if (!tower || !tower.isSupportTower || !tower.topBeam || !tower.blocks.includes(tower.topBeam)) {
-            return;
-        }
-
-        const pigX = tower.topBeam.x + tower.topBeam.width / 2;
-        const pigY = tower.topBeam.y - 18;
-        this.drawGoofyPigAt(pigX, pigY, 0);
+    drawGoofyPigsOnTowers() {
+        this.towers.forEach((tower, index) => {
+            if (!tower.isSupportTower || !tower.topBeam || !tower.blocks.includes(tower.topBeam)) {
+                return;
+            }
+            const pigX = tower.topBeam.x + tower.topBeam.width / 2;
+            const pigY = tower.topBeam.y - 18;
+            this.drawGoofyPigAt(pigX, pigY, 0, index % 2 === 1);
+        });
     }
 
-    drawGoofyPigAt(pigX, pigY, angle) {
+    drawGoofyPigAt(pigX, pigY, angle, flipX) {
         const ctx = this.ctx;
         ctx.save();
         ctx.translate(pigX, pigY);
+        if (flipX) {
+            ctx.scale(-1, 1);
+        }
         ctx.rotate(angle);
 
         ctx.fillStyle = '#7ed957';
@@ -526,11 +535,21 @@ class ParabolicBirdsGame {
     }
     
     nextLevel() {
+        soundManager.ensureContext(true);
+        if (this.gameState === 'gameComplete') {
+            this.loadLevel(1);
+            this.showMessage('Level 1 — go!', 'info');
+            return;
+        }
+        if (this.gameState !== 'levelComplete') {
+            return;
+        }
         if (this.currentLevel < LEVELS.length) {
             this.loadLevel(this.currentLevel + 1);
         } else {
-            this.showMessage('Congratulations! You beat all levels!', 'success');
+            this.showMessage('You cleared every level! Press Next to restart from level 1.', 'success');
             this.gameState = 'gameComplete';
+            this.updateUI();
         }
     }
     
@@ -541,7 +560,8 @@ class ParabolicBirdsGame {
         
         // Enable/disable buttons
         document.getElementById('shootBtn').disabled = this.bird.active || this.gameState !== 'playing';
-        document.getElementById('nextLevelBtn').disabled = this.gameState !== 'levelComplete';
+        document.getElementById('nextLevelBtn').disabled =
+            !(this.gameState === 'levelComplete' || this.gameState === 'gameComplete');
     }
 
     switchInputMode(mode) {

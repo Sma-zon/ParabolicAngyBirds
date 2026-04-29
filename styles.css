@@ -14,6 +14,15 @@
     box-sizing: border-box;
 }
 
+.sfx-mp3 {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    pointer-events: none;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, var(--dark-bg) 0%, #2a2a2a 100%);

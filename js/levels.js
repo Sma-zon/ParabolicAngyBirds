@@ -9,6 +9,7 @@ const LEVELS = [
         name: 'Simple Start',
         description: 'Destroy all blocks to complete the level',
         suggestedEquation: { a: 0.01, h: 250, k: 100 },
+        supportTowerPlacements: [{ baseX: 610, topY: 350 }],
         towers: [
             {
                 x: 700,
@@ -24,28 +25,13 @@ const LEVELS = [
     {
         id: 2,
         name: 'Double Tower',
-        description: 'Destroy towers on both sides',
-        suggestedEquation: { a: 0.008, h: 350, k: 150 },
-        towers: [
-            {
-                x: 550,
-                y: 400,
-                blocks: [
-                    new Block(530, 420, 40, 40, 'wood'),
-                    new Block(570, 420, 40, 40, 'wood'),
-                    new Block(550, 360, 40, 40, 'stone')
-                ]
-            },
-            {
-                x: 850,
-                y: 400,
-                blocks: [
-                    new Block(830, 420, 40, 40, 'wood'),
-                    new Block(870, 420, 40, 40, 'wood'),
-                    new Block(850, 360, 40, 40, 'stone')
-                ]
-            }
-        ]
+        description: 'Two stilt towers with pigs — knock them both down',
+        suggestedEquation: { a: 0.0011, h: 480, k: 155 },
+        supportTowerPlacements: [
+            { baseX: 360, topY: 350 },
+            { baseX: 600, topY: 350 }
+        ],
+        towers: []
     },
     {
         id: 3,

@@ -22,9 +22,9 @@ A fun, interactive game that teaches parabolic equations through gameplay! Playe
 - Smooth animations and transitions
 
 ### 🔊 Audio System
-- Web Audio API procedural sounds (no external audio files)
-- Random bird chirps while flying, pig oink/yelp on tower fall, tower impact on hits
-- Adjustable volume in `js/sound-manager.js`
+- **Optional MP3s** in `sounds/` (see `sounds/README.md` for exact filenames); if a file is missing or `play()` fails, **Web Audio** procedural fallback runs for that cue
+- Random bird chirps while flying, pig oink/yelp on tower fall, tower impact on hits, short win fanfare
+- Volume and mute apply to both MP3 elements and the synth bus (`js/sound-manager.js`)
 
 ### 📊 Level System
 1. **Simple Start** - Learn the basics with an easy target
