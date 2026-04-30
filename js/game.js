@@ -24,10 +24,52 @@ class ParabolicBirdsGame {
         this._answerRows = null;
         this._answersUiLoaded = false;
         this._answersFetchPromise = null;
+        /** @type {'play'|'maker'} */
+        this.appMode = 'play';
+        this.isCustomLevel = false;
+        /** @type {{blocks:object[],pigs:object[]}|null} */
+        this._customLevelPayload = null;
 
         this.setupEventListeners();
+        this.setupAppModeTabs();
         this.loadLevel(1);
         this.gameLoop();
+    }
+
+    setupAppModeTabs() {
+        const playBtn = document.getElementById('appTabPlay');
+        const makerBtn = document.getElementById('appTabMaker');
+        const panelPlay = document.getElementById('panelPlay');
+        const panelMaker = document.getElementById('panelMaker');
+        if (!playBtn || !makerBtn || !panelPlay || !panelMaker) return;
+        playBtn.addEventListener('click', () => this.setAppMode('play'));
+        makerBtn.addEventListener('click', () => this.setAppMode('maker'));
+    }
+
+    setAppMode(mode) {
+        this.appMode = mode;
+        const playBtn = document.getElementById('appTabPlay');
+        const makerBtn = document.getElementById('appTabMaker');
+        const panelPlay = document.getElementById('panelPlay');
+        const panelMaker = document.getElementById('panelMaker');
+        if (playBtn && makerBtn) {
+            playBtn.classList.toggle('active', mode === 'play');
+            makerBtn.classList.toggle('active', mode === 'maker');
+        }
+        if (panelPlay && panelMaker) {
+            panelPlay.classList.toggle('active', mode === 'play');
+            panelMaker.classList.toggle('active', mode === 'maker');
+        }
+        if (mode === 'maker') {
+            this.bird.reset();
+            this.bird.active = false;
+            if (window.levelEditor) {
+                window.levelEditor.requestRedraw();
+            }
+        }
+        if (mode === 'play' && this.gameState === 'playing' && !this.bird.active) {
+            this.updateUI();
+        }
     }
 
     resolveSupportPlacements(level) {
@@ -224,7 +266,9 @@ class ParabolicBirdsGame {
     loadLevel(levelId) {
         const level = getLevelById(levelId);
         if (!level) return;
-        
+
+        this.isCustomLevel = false;
+        this._customLevelPayload = null;
         this.currentLevel = levelId;
         this.bird.reset();
         const gameplayTowers = this.buildTowersFromLevel(level);
@@ -292,7 +336,13 @@ class ParabolicBirdsGame {
                     (b) => new Block(b.x, b.y, b.w, b.h, b.type || 'wood')
                 );
                 const tower = new Tower(def.x || 0, def.y || 0, blocks);
-                if (def.pig && typeof def.pig.x === 'number' && typeof def.pig.y === 'number') {
+                if (def.pigs && Array.isArray(def.pigs) && def.pigs.length) {
+                    tower.pigDecorations = def.pigs.map((p) => ({
+                        x: p.x,
+                        y: p.y,
+                        flip: !!p.flip
+                    }));
+                } else if (def.pig && typeof def.pig.x === 'number' && typeof def.pig.y === 'number') {
                     tower.pigDecoration = {
                         x: def.pig.x,
                         y: def.pig.y,
@@ -304,6 +354,44 @@ class ParabolicBirdsGame {
         }
         const placements = this.resolveSupportPlacements(level);
         return placements.map((p) => this.createSupportTowerAt(p.baseX, p.topY));
+    }
+
+    /**
+     * @param {{ blocks: {x:number,y:number,w:number,h:number,type:string}[], pigs?: {x:number,y:number,flip?:boolean}[] }} payload
+     */
+    loadCustomLevel(payload) {
+        if (!payload || !Array.isArray(payload.blocks) || payload.blocks.length === 0) {
+            this.showMessage('Add at least one block in the level maker before playing.', 'error');
+            return;
+        }
+        this.isCustomLevel = true;
+        this._customLevelPayload = JSON.parse(JSON.stringify(payload));
+        this.currentLevel = 0;
+        this.bird.reset();
+
+        const blocks = payload.blocks.map(
+            (b) => new Block(b.x, b.y, b.w, b.h, b.type || 'wood')
+        );
+        blocks.sort((a, b) => {
+            const ta = a.type === 'tnt' ? 0 : 1;
+            const tb = b.type === 'tnt' ? 0 : 1;
+            return ta - tb;
+        });
+        const tower = new Tower(0, 0, blocks);
+        const pigs = payload.pigs && Array.isArray(payload.pigs) ? payload.pigs : [];
+        if (pigs.length) {
+            tower.pigDecorations = pigs.map((p) => ({
+                x: p.x,
+                y: p.y,
+                flip: !!p.flip
+            }));
+        }
+        const groundTower = this.buildGroundTower();
+        this.towers = groundTower ? [groundTower, tower] : [tower];
+        this.gameState = 'playing';
+        particleSystem.clear();
+        this.updateUI();
+        this.showMessage('Playing your custom level — clear every block to win!', 'info');
     }
 
     triggerTntExplosion(tower) {
@@ -438,6 +526,7 @@ class ParabolicBirdsGame {
     }
 
     update() {
+        if (this.appMode === 'maker') return;
         if (this.gameState !== 'playing') return;
 
         if (this.bird.active) {
@@ -616,6 +705,7 @@ class ParabolicBirdsGame {
     }
     
     draw() {
+        if (this.appMode === 'maker') return;
         // Clear canvas
         this.ctx.fillStyle = 'rgba(135, 206, 235, 0.1)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -714,6 +804,12 @@ class ParabolicBirdsGame {
 
     drawGoofyPigsOnTowers() {
         this.towers.forEach((tower, index) => {
+            if (tower.pigDecorations && tower.pigDecorations.length) {
+                tower.pigDecorations.forEach((p, i) => {
+                    this.drawGoofyPigAt(p.x, p.y, 0, p.flip != null ? p.flip : i % 2 === 1);
+                });
+                return;
+            }
             if (tower.pigDecoration) {
                 this.drawGoofyPigAt(
                     tower.pigDecoration.x,
@@ -792,14 +888,24 @@ class ParabolicBirdsGame {
     
     resetLevel() {
         if (this.gameState === 'playing') {
-            this.loadLevel(this.currentLevel);
-            this.showMessage('Level Reset', 'info');
+            if (this.isCustomLevel && this._customLevelPayload) {
+                this.loadCustomLevel(this._customLevelPayload);
+                this.showMessage('Custom level reset', 'info');
+            } else {
+                this.loadLevel(this.currentLevel);
+                this.showMessage('Level Reset', 'info');
+            }
         }
     }
     
     nextLevel() {
         soundManager.ensureContext();
         if (this.gameState !== 'levelComplete') {
+            return;
+        }
+        if (this.isCustomLevel && this._customLevelPayload) {
+            this.loadCustomLevel(this._customLevelPayload);
+            this.showMessage('Custom level — go again!', 'info');
             return;
         }
         if (this.currentLevel < LEVELS.length) {
@@ -811,7 +917,8 @@ class ParabolicBirdsGame {
     }
     
     updateUI() {
-        document.getElementById('levelDisplay').textContent = `Level: ${this.currentLevel}`;
+        const label = this.isCustomLevel ? 'My level' : String(this.currentLevel);
+        document.getElementById('levelDisplay').textContent = `Level: ${label}`;
         document.getElementById('scoreDisplay').textContent = `Score: ${this.score}`;
         document.getElementById('attemptsDisplay').textContent = `Shots: Unlimited`;
         
@@ -823,10 +930,14 @@ class ParabolicBirdsGame {
         document.getElementById('nextLevelBtn').disabled = this.gameState !== 'levelComplete';
 
         const nextBtn = document.getElementById('nextLevelBtn');
-        if (this.gameState === 'levelComplete' && this.currentLevel === LEVELS.length) {
-            nextBtn.textContent = '🔄 Restart';
-        } else {
-            nextBtn.textContent = '➡️ Next Level';
+        if (nextBtn) {
+            if (this.isCustomLevel && this.gameState === 'levelComplete') {
+                nextBtn.textContent = '🔄 Play again';
+            } else if (!this.isCustomLevel && this.gameState === 'levelComplete' && this.currentLevel === LEVELS.length) {
+                nextBtn.textContent = '🔄 Restart';
+            } else {
+                nextBtn.textContent = '➡️ Next Level';
+            }
         }
     }
 
@@ -872,5 +983,7 @@ class ParabolicBirdsGame {
 
 // Initialize game when page loads
 window.addEventListener('load', () => {
-    new ParabolicBirdsGame();
+    const game = new ParabolicBirdsGame();
+    window.game = game;
+    window.levelEditor = new LevelEditor(game);
 });

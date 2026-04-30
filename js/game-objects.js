@@ -245,6 +245,8 @@ class Tower {
         this.x = x;
         this.y = y;
         this.blocks = blocks;
+        /** @type {{x:number,y:number,flip?:boolean}[]|null} */
+        this.pigDecorations = null;
     }
     
     draw(ctx) {

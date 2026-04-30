@@ -16,78 +16,120 @@
                 <span id="attemptsDisplay">Shots: Unlimited</span>
             </div>
         </header>
-        
-        <main>
-            <canvas id="gameCanvas" width="1000" height="600"></canvas>
-            
-            <div class="control-panel">
-                <h2>Enter Parabolic Equation</h2>
-                <p class="equation-format">Format: y = -a(x-h)^2 + k</p>
-                <div class="input-mode-tabs input-mode-tabs--three">
-                    <button type="button" id="fullEquationTab" class="mode-tab active">Full Equation</button>
-                    <button type="button" id="splitInputsTab" class="mode-tab">a / h / k</button>
-                    <button type="button" id="answersTab" class="mode-tab">Answers</button>
-                </div>
 
-                <div id="fullEquationPanel" class="input-panel active">
-                    <div class="input-group">
-                        <label for="equationInput">Full equation:</label>
-                        <input
-                            type="text"
-                            id="equationInput"
-                            class="equation-input"
-                            autocomplete="off"
-                            spellcheck="false"
-                            value="y = -0.0012(x-430)^2 + 150"
-                        >
+        <nav class="app-mode-tabs" aria-label="Main modes">
+            <button type="button" id="appTabPlay" class="app-mode-tab active">Play levels</button>
+            <button type="button" id="appTabMaker" class="app-mode-tab">Level maker</button>
+        </nav>
+
+        <div id="panelPlay" class="app-mode-panel active">
+            <main>
+                <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+                <div class="control-panel">
+                    <h2>Enter Parabolic Equation</h2>
+                    <p class="equation-format">Format: y = -a(x-h)^2 + k</p>
+                    <div class="input-mode-tabs input-mode-tabs--three">
+                        <button type="button" id="fullEquationTab" class="mode-tab active">Full Equation</button>
+                        <button type="button" id="splitInputsTab" class="mode-tab">a / h / k</button>
+                        <button type="button" id="answersTab" class="mode-tab">Answers</button>
                     </div>
-                </div>
 
-                <div id="splitInputsPanel" class="input-panel">
-                    <div class="input-group">
-                        <label>a (vertical stretch): <input type="text" id="inputA" value="0.0012" autocomplete="off" spellcheck="false"></label>
-                        <label>h (horizontal shift): <input type="text" id="inputH" value="430" autocomplete="off" spellcheck="false"></label>
-                        <label>k (vertical shift): <input type="text" id="inputK" value="150" autocomplete="off" spellcheck="false"></label>
+                    <div id="fullEquationPanel" class="input-panel active">
+                        <div class="input-group">
+                            <label for="equationInput">Full equation:</label>
+                            <input
+                                type="text"
+                                id="equationInput"
+                                class="equation-input"
+                                autocomplete="off"
+                                spellcheck="false"
+                                value="y = -0.0012(x-430)^2 + 150"
+                            >
+                        </div>
                     </div>
-                </div>
 
-                <div id="answersPanel" class="input-panel">
-                    <p class="answers-intro">
-                        <strong>For the teacher:</strong> solution equations load <em>only</em> when this tab is opened (from <code>data/level-answers.json</code> on the same site). They are not bundled in the main page.
-                    </p>
-                    <ol class="answers-steps">
-                        <li>Try the level with your own <strong>Full Equation</strong> or <strong>a / h / k</strong> first.</li>
-                        <li>Open <strong>Answers</strong> when you want a verified trajectory for this build.</li>
-                        <li>Tap <strong>Copy to equation</strong> — it fills the full equation field and switches you back to shoot.</li>
-                        <li>Level 4: <strong>four</strong> two-layer keeps — copy each shot in order (left to right); each answer targets that tower&apos;s TNT.</li>
-                    </ol>
-                    <p class="answers-footnote">Serve over <code>http://localhost</code> or GitHub Pages so answers can load (browsers block <code>file://</code> fetches).</p>
-                    <div id="answersPanelBody" class="answers-body"></div>
+                    <div id="splitInputsPanel" class="input-panel">
+                        <div class="input-group">
+                            <label>a (vertical stretch): <input type="text" id="inputA" value="0.0012" autocomplete="off" spellcheck="false"></label>
+                            <label>h (horizontal shift): <input type="text" id="inputH" value="430" autocomplete="off" spellcheck="false"></label>
+                            <label>k (vertical shift): <input type="text" id="inputK" value="150" autocomplete="off" spellcheck="false"></label>
+                        </div>
+                    </div>
+
+                    <div id="answersPanel" class="input-panel">
+                        <p class="answers-intro">
+                            <strong>For the teacher:</strong> solution equations load <em>only</em> when this tab is opened (from <code>data/level-answers.json</code> on the same site). They are not bundled in the main page.
+                        </p>
+                        <ol class="answers-steps">
+                            <li>Try the level with your own <strong>Full Equation</strong> or <strong>a / h / k</strong> first.</li>
+                            <li>Open <strong>Answers</strong> when you want a verified trajectory for this build.</li>
+                            <li>Tap <strong>Copy to equation</strong> — it fills the full equation field and switches you back to shoot.</li>
+                            <li>Level 4: <strong>four</strong> two-layer keeps — copy each shot in order (left to right); each answer targets that tower&apos;s TNT.</li>
+                        </ol>
+                        <p class="answers-footnote">Serve over <code>http://localhost</code> or GitHub Pages so answers can load (browsers block <code>file://</code> fetches).</p>
+                        <div id="answersPanelBody" class="answers-body"></div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" id="shootBtn" class="btn-primary">🚀 SHOOT</button>
+                        <button type="button" id="nextLevelBtn" class="btn-secondary">➡️ Next Level</button>
+                    </div>
+                    <div id="messageBox" class="message-box"></div>
                 </div>
-                <div class="button-group">
-                    <button type="button" id="shootBtn" class="btn-primary">🚀 SHOOT</button>
-                    <button type="button" id="nextLevelBtn" class="btn-secondary">➡️ Next Level</button>
+            </main>
+
+            <footer>
+                <p class="footer-main">Master vertex-form parabolas: adjust <strong>a</strong>, <strong>h</strong>, and <strong>k</strong>, launch the bird, and learn from each arc.</p>
+                <p class="footer-gift">With appreciation for math teachers everywhere, enjoy the lesson.</p>
+            </footer>
+        </div>
+
+        <div id="panelMaker" class="app-mode-panel">
+            <div class="level-maker-shell">
+                <aside class="maker-sidebar maker-sidebar--left">
+                    <h2 class="maker-heading">Blocks &amp; tools</h2>
+                    <p class="maker-help">Pick a piece, then click on the grid. <strong>Right-click</strong> or choose Eraser to remove.</p>
+                    <div id="makerPalette" class="maker-palette"></div>
+                    <div class="maker-snap-row">
+                        <span class="maker-label">Grid snap</span>
+                        <button type="button" id="makerBtnSnap8" class="btn-maker-secondary">8 px</button>
+                        <button type="button" id="makerBtnSnap16" class="btn-maker-secondary">16 px</button>
+                    </div>
+                </aside>
+                <div class="maker-stage">
+                    <canvas id="levelMakerCanvas" width="1000" height="600" aria-label="Level design canvas"></canvas>
+                    <p class="maker-hint">Axes match the play screen — bird still launches from the white square.</p>
                 </div>
-                <div id="messageBox" class="message-box"></div>
+                <aside class="maker-sidebar maker-sidebar--right">
+                    <h2 class="maker-heading">Play &amp; share</h2>
+                    <button type="button" id="makerBtnPlay" class="btn-maker-primary">▶ Play this level</button>
+                    <p class="maker-help">Switches to <strong>Play levels</strong> and loads your layout. Destroy every wood, metal, and TNT block to win (pigs are decorative).</p>
+                    <button type="button" id="makerBtnClear" class="btn-maker-secondary">Clear all</button>
+                    <h3 class="maker-subheading">JSON</h3>
+                    <p class="maker-help">Export to save your design, or paste and Import.</p>
+                    <textarea id="makerJsonIo" class="maker-json" rows="8" spellcheck="false" placeholder='{"blocks":[...],"pigs":[...]}'></textarea>
+                    <div class="maker-json-btns">
+                        <button type="button" id="makerBtnExport" class="btn-maker-secondary">Export to box</button>
+                        <button type="button" id="makerBtnImport" class="btn-maker-secondary">Import from box</button>
+                    </div>
+                </aside>
             </div>
-        </main>
-        
-        <footer>
-            <p class="footer-main">Master vertex-form parabolas: adjust <strong>a</strong>, <strong>h</strong>, and <strong>k</strong>, launch the bird, and learn from each arc.</p>
-            <p class="footer-gift">With appreciation for math teachers everywhere — enjoy the lesson.</p>
-        </footer>
+            <footer class="footer-maker">
+                <p>Tip: Metal (stone) takes more hits than wood. TNT blows up the whole stack it belongs to.</p>
+            </footer>
+        </div>
     </div>
 
     <div class="sfx-mp3" aria-hidden="true">
-        <!-- src set from js/sound-manager.js (tries several theme filenames). -->
         <audio id="bgmTheme" preload="metadata" loop playsinline></audio>
         <audio id="sfxBirdChirp" preload="auto"><source src="sounds/bird-chirp.mp3" type="audio/mpeg"></audio>
     </div>
-    
+
     <script src="js/sound-manager.js"></script>
     <script src="js/particle-system.js"></script>
     <script src="js/game-objects.js"></script>
     <script src="js/levels.js"></script>
+    <script src="js/level-editor.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html>
